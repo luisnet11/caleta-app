@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caleta Protocol</title>
+  <!-- Ethers.js v6 desde CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --card: #1e293b;
+      --card-border: #334155;
+      --primary-grad: linear-gradient(135deg, #0284c7 0%, #00d2ff 100%);
+      --accent-green: #10b981;
+      --danger: #f43f5e;
+      --text: #f8fafc;
+      --text-dim: #94a3b8;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .app-container { width: 100%; max-width: 420px; }
+
+    /* Cabecera */
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 4px 0; }
+    .brand { font-size: 1.3rem; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 8px; }
+    .badge-network { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--accent-green); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+
+    /* Tarjetas y Grid */
+    .card { background: var(--card); border: 1px solid var(--card-border); border-radius: 20px; padding: 20px; margin-bottom: 16px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .stat-box { background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+    .stat-label { font-size: 0.75rem; color: var(--text-dim); margin-bottom: 4px; }
+    .stat-value { font-size: 1rem; font-weight: 700; color: var(--accent-green); word-break: break-all; }
+
+    /* Hero de Balance */
+    .balance-hero { text-align: center; padding: 15px 0; border-bottom: 1px solid var(--card-border); margin-bottom: 15px; }
+    .balance-title { font-size: 0.85rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+    .balance-amount { font-size: 2.2rem; font-weight: 800; color: #fff; margin: 6px 0; }
+    .balance-symbol { font-size: 1rem; color: #38bdf8; font-weight: 600; }
+
+    /* Pestañas */
+    .tab-group { display: flex; background: #0f172a; padding: 4px; border-radius: 12px; margin-bottom: 16px; }
+    .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; color: var(--text-dim); font-weight: 600; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 0.85rem; }
+    .tab-btn.active { background: var(--card); color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+
+    /* Inputs y Formularios */
+    .input-label { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 6px; }
+    .input-wrapper { position: relative; margin-bottom: 10px; }
+    input[type="number"], input[type="password"], input[type="text"] { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--card-border); background: #0f172a; color: #fff; font-size: 1rem; box-sizing: border-box; outline: none; }
+    input:focus { border-color: #38bdf8; }
+    .preset-group { display: flex; gap: 6px; margin-bottom: 16px; }
+    .preset-btn { flex: 1; padding: 8px 4px; background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); border-radius: 8px; color: var(--text-dim); font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+
+    /* Botones */
+    .btn-action { width: 100%; padding: 16px; border: none; border-radius: 12px; background: var(--primary-grad); color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(2, 132, 199, 0.3); transition: transform 0.1s; margin-top: 8px; }
+    .btn-action:active { transform: scale(0.98); }
+    .btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-danger { background: linear-gradient(135deg, #e11d48 0%, #f43f5e 100%); box-shadow: 0 4px 15px rgba(225, 29, 72, 0.3); }
+    .btn-claim { background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
+    .btn-logout { background: transparent; border: 1px solid var(--card-border); padding: 6px 12px; border-radius: 8px; color: var(--text-dim); font-size: 0.8rem; cursor: pointer; }
+
+    /* Toast Notification */
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; border: 1px solid var(--card-border); color: #fff; padding: 12px 20px; border-radius: 30px; font-size: 0.9rem; box-shadow: 0 10px 25px rgba(0,0,0,0.5); opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 1000; text-align: center; width: max-content; max-width: 90%; }
+    .toast.show { opacity: 1; pointer-events: auto; }
+    .toast.error { border-color: var(--danger); color: #fda4af; }
+    .explorer-link { color: #38bdf8; text-decoration: none; font-weight: bold; margin-top: 4px; display: block; }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  
+  <!-- Cabecera -->
+  <div class="header">
+    <div class="brand">🌊 Caleta</div>
+    <div class="badge-network">● Tuxachain (1313161955)</div>
+  </div>
+
+  <!-- Tarjeta de Autenticación / Onboarding -->
+  <div class="card" id="auth-card">
+    <h3 style="margin-top:0; color: #fff;">Desbloquear Billetera</h3>
+    <p style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 20px;">
+      Tus credenciales se encriptan localmente en tu dispositivo.
+    </p>
+    
+    <div id="first-time-setup" style="display: none;">
+      <div class="input-label"><span>Clave Privada o Frase Semilla</span></div>
+      <div class="input-wrapper">
+        <input type="password" id="pk-input" placeholder="Pega tu clave aquí...">
+      </div>
+    </div>
+
+    <div class="input-label"><span>Contraseña Maestra</span></div>
+    <div class="input-wrapper">
+      <input type="password" id="pass-input" placeholder="Ingresa tu contraseña">
+    </div>
+    
+    <button class="btn-action" id="btn-login" onclick="desbloquearBilletera()">Ingresar a Caleta</button>
+  </div>
+
+  <!-- Panel Principal de Operaciones (Oculto al inicio) -->
+  <div class="card" id="app-card" style="display:none;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+      <div style="font-size: 0.85rem; color: var(--text-dim);" id="wallet-addr">0x00...000</div>
+      <button class="btn-logout" onclick="cerrarSesion()">Cerrar Sesión</button>
+    </div>
+
+    <!-- Grid de Estadísticas -->
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-label">Tu Saldo WNEAR</div>
+        <div class="stat-value" id="val-wnear">0.00</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Gas ETH (Patrocinado)</div>
+        <div class="stat-value" id="val-eth" style="color: #94a3b8;">0.000</div>
+      </div>
+    </div>
+
+    <!-- Saldo MORO y Ganancias -->
+    <div class="balance-hero">
+      <div class="balance-title">Depósito Activo (MORO)</div>
+      <div class="balance-amount" id="val-moro">0.00</div>
+      <div style="color: var(--accent-green); font-size: 0.9rem; font-weight: bold; margin-top: 5px;">
+        APY Estimado: ~3.50%
+      </div>
+    </div>
+
+    <!-- Pestañas de Navegación -->
+    <div class="tab-group">
+      <button class="tab-btn active" id="tab-dep-btn" onclick="switchTab('deposit')">Depositar</button>
+      <button class="tab-btn" id="tab-claim-btn" onclick="switchTab('claim')">Reclamar</button>
+      <button class="tab-btn" id="tab-with-btn" onclick="switchTab('withdraw')">Retirar</button>
+    </div>
+
+    <!-- FORMULARIO: DEPOSITAR -->
+    <div id="form-deposit" class="form-panel">
+      <div class="input-label">
+        <span>Monto a depositar (WNEAR)</span>
+      </div>
+      <div class="input-wrapper">
+        <input type="number" id="input-deposit" placeholder="0.0" step="0.01">
+      </div>
+      <div class="preset-group">
+        <button class="preset-btn" onclick="setPercent('deposit', 25)">25%</button>
+        <button class="preset-btn" onclick="setPercent('deposit', 50)">50%</button>
+        <button class="preset-btn" onclick="setPercent('deposit', 75)">75%</button>
+        <button class="preset-btn" onclick="setPercent('deposit', 100)">MAX</button>
+      </div>
+      <button class="btn-action" onclick="ejecutarDeposito()" id="btn-dep">Depositar WNEAR</button>
+    </div>
+
+    <!-- FORMULARIO: RECLAMAR -->
+    <div id="form-claim" class="form-panel" style="display:none; text-align: center;">
+      <div style="padding: 20px 0;">
+        <div class="balance-title">Ganancias Pendientes</div>
+        <div class="balance-amount" style="color: var(--accent-green);" id="val-rewards">0.00</div>
+        <div class="balance-symbol" style="margin-bottom: 20px;">WNEAR</div>
+        <button class="btn-action btn-claim" onclick="ejecutarReclamo()" id="btn-claim">Reclamar Ganancias</button>
+      </div>
+    </div>
+
+    <!-- FORMULARIO: RETIRAR -->
+    <div id="form-withdraw" class="form-panel" style="display:none;">
+      <div class="input-label">
+        <span>Monto a retirar (MORO)</span>
+      </div>
+      <div class="input-wrapper">
+        <input type="number" id="input-withdraw" placeholder="0.0" step="0.01">
+      </div>
+      <div class="preset-group">
+        <button class="preset-btn" onclick="setPercent('withdraw', 25)">25%</button>
+        <button class="preset-btn" onclick="setPercent('withdraw', 50)">50%</button>
+        <button class="preset-btn" onclick="setPercent('withdraw', 75)">75%</button>
+        <button class="preset-btn" onclick="setPercent('withdraw', 100)">MAX</button>
+      </div>
+      <button class="btn-action btn-danger" onclick="ejecutarRetiro()" id="btn-with">Solicitar Retiro</button>
+    </div>
+
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
+</div>
+
+<script>
+  // ==========================================
+  // CONFIGURACIÓN TUXACHAIN
+  // ==========================================
+  const CONFIG = {
+    RPC: "https://0x4e4542e3.rpc.aurora-cloud.dev",
+    CHAIN_ID: 1313161955,
+    EXPLORER: "https://0x4e4542e3.explorer.aurora-cloud.dev",
+    WNEAR: "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d",
+    VAULT: "0x72820f7A42aeeEA191b86F3A95E470555988209f",
+    DEC: { WNEAR: 24, MORO: 18 }
+  };
+
+  // ABIs Estándar
+  const ABI_ERC20 = [
+    "function balanceOf(address) view returns (uint256)",
+    "function allowance(address, address) view returns (uint256)",
+    "function approve(address, uint256) returns (bool)"
+  ];
+  
+  const ABI_VAULT = [
+    "function deposit(uint256)",
+    "function requestWithdrawal(uint256)",
+    "function claim()", 
+    "function pendingRewards(address) view returns (uint256)" // Ajustar si el contrato usa otro nombre para leer ganancias
+  ];
+
+  // Variables Globales
+  let provider, wallet, wnearContract, vaultContract;
+  let rawBalances = { wnear: 0n, moro: 0n };
+
+  // ==========================================
+  // INICIALIZACIÓN Y SEGURIDAD (KEYSTORE)
+  // ==========================================
+  document.addEventListener("DOMContentLoaded", () => {
+    if (!localStorage.getItem("caleta_ks")) {
+      document.getElementById("first-time-setup").style.display = "block";
+    }
+  });
+
+  async function desbloquearBilletera() {
+    const pk = document.getElementById("pk-input")?.value.trim();
+    const pass = document.getElementById("pass-input").value;
+    const btn = document.getElementById("btn-login");
+    
+    if (!pass) return showToast("⚠️ Ingresa tu contraseña maestra", true);
+
+    try {
+      btn.innerText = "⏳ Conectando...";
+      btn.disabled = true;
+
+      provider = new ethers.JsonRpcProvider(CONFIG.RPC, CONFIG.CHAIN_ID);
+      const localKeystore = localStorage.getItem("caleta_ks");
+
+      if (!localKeystore) {
+        if (!pk) throw new Error("Debes ingresar tu clave privada o semilla la primera vez.");
+        showToast("Encriptando billetera de forma segura...");
+        const tempWallet = pk.includes(" ") ? ethers.Wallet.fromPhrase(pk) : new ethers.Wallet(pk);
+        const encrypted = await tempWallet.encrypt(pass);
+        localStorage.setItem("caleta_ks", encrypted);
+        wallet = tempWallet.connect(provider);
+      } else {
+        showToast("Desbloqueando billetera...");
+        wallet = await ethers.Wallet.fromEncryptedJson(localKeystore, pass);
+        wallet = wallet.connect(provider);
+      }
+
+      // Inicializar Contratos
+      wnearContract = new ethers.Contract(CONFIG.WNEAR, ABI_ERC20, wallet);
+      vaultContract = new ethers.Contract(CONFIG.VAULT, ABI_VAULT, wallet);
+
+      // UI Updates
+      document.getElementById("auth-card").style.display = "none";
+      document.getElementById("app-card").style.display = "block";
+      document.getElementById("wallet-addr").innerText = `${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}`;
+      
+      await actualizarSaldos();
+      showToast("✅ Billetera conectada a Tuxachain");
+
+    } catch (e) {
+      showToast(e.message.includes("password") ? "❌ Contraseña incorrecta" : "❌ Error: " + e.message, true);
+    } finally {
+      btn.innerText = "Ingresar a Caleta";
+      btn.disabled = false;
+    }
+  }
+
+  function cerrarSesion() {
+    wallet = null;
+    document.getElementById("pass-input").value = "";
+    document.getElementById("app-card").style.display = "none";
+    document.getElementById("auth-card").style.display = "block";
+  }
+
+  // ==========================================
+  // LÓGICA WEB3: LECTURA
+  // ==========================================
+  async function actualizarSaldos() {
+    if (!wallet) return;
+    try {
+      // Leer saldos paralelos
+      const [ethBal, wnearBal, moroBal] = await Promise.all([
+        provider.getBalance(wallet.address),
+        wnearContract.balanceOf(wallet.address),
+        new ethers.Contract(CONFIG.VAULT, ABI_ERC20, provider).balanceOf(wallet.address) // MORO es el mismo contrato Vault
+      ]);
+
+      rawBalances.wnear = wnearBal;
+      rawBalances.moro = moroBal;
+
+      document.getElementById("val-eth").innerText = parseFloat(ethers.formatEther(ethBal)).toFixed(4);
+      document.getElementById("val-wnear").innerText = parseFloat(ethers.formatUnits(wnearBal, CONFIG.DEC.WNEAR)).toFixed(4);
+      document.getElementById("val-moro").innerText = parseFloat(ethers.formatUnits(moroBal, CONFIG.DEC.MORO)).toFixed(4);
+
+      // Intentar leer ganancias pendientes (Falla silenciosa si el ABI no coincide exactamente)
+      try {
+        const rewards = await vaultContract.pendingRewards(wallet.address);
+        document.getElementById("val-rewards").innerText = parseFloat(ethers.formatUnits(rewards, CONFIG.DEC.WNEAR)).toFixed(4);
+      } catch (e) { console.log("Nota: Metodo pendingRewards no implementado en contrato"); }
+
+    } catch (e) {
+      console.error("Error leyendo saldos:", e);
+    }
+  }
+
+  // ==========================================
+  // LÓGICA WEB3: ESCRITURA Y PATROCINIO
+  // ==========================================
+  function handleGasError(e) {
+    const errText = (e.message || "").toLowerCase() + (e.reason || "").toLowerCase();
+    if (errText.includes("insufficient funds") || errText.includes("gas") || errText.includes("fee")) {
+      showToast("❌ La red no pudo patrocinar la transacción por falta de gas. Intenta más tarde.", true);
+    } else {
+      showToast("❌ Error: " + (e.reason || "Transacción rechazada"), true);
+    }
+  }
+
+  async function ejecutarDeposito() {
+    const input = document.getElementById("input-deposit").value;
+    if (!input || input <= 0) return showToast("⚠️ Ingresa un monto válido", true);
+    
+    const btn = document.getElementById("btn-dep");
+    btn.disabled = true;
+
+    try {
+      const parsedAmount = ethers.parseUnits(input.toString(), CONFIG.DEC.WNEAR);
+      
+      // 1. Verificar Allowance
+      showToast("1/2 Verificando autorización...");
+      const allowance = await wnearContract.allowance(wallet.address, CONFIG.VAULT);
+      
+      if (allowance < parsedAmount) {
+        showToast("1/2 Aprobando WNEAR en el contrato...");
+        const txApprove = await wnearContract.approve(CONFIG.VAULT, ethers.MaxUint256);
+        await txApprove.wait();
+      }
+
+      // 2. Depositar
+      showToast("2/2 Confirmando depósito...");
+      const txDep = await vaultContract.deposit(parsedAmount);
+      const receipt = await txDep.wait();
+      
+      showToast(`✅ ¡Depósito Exitoso! <a class='explorer-link' href='${CONFIG.EXPLORER}/tx/${receipt.hash}' target='_blank'>Ver Tx</a>`);
+      document.getElementById("input-deposit").value = "";
+      await actualizarSaldos();
+    } catch (e) {
+      handleGasError(e);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function ejecutarRetiro() {
+    const input = document.getElementById("input-withdraw").value;
+    if (!input || input <= 0) return showToast("⚠️ Ingresa un monto válido", true);
+
+    const btn = document.getElementById("btn-with");
+    btn.disabled = true;
+
+    try {
+      const parsedAmount = ethers.parseUnits(input.toString(), CONFIG.DEC.MORO);
+      showToast("⏳ Solicitando retiro al contrato...");
+      
+      const tx = await vaultContract.requestWithdrawal(parsedAmount);
+      const receipt = await tx.wait();
+
+      showToast(`✅ Retiro Solicitado. <a class='explorer-link' href='${CONFIG.EXPLORER}/tx/${receipt.hash}' target='_blank'>Ver Tx</a>`);
+      document.getElementById("input-withdraw").value = "";
+      await actualizarSaldos();
+    } catch (e) {
+      handleGasError(e);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function ejecutarReclamo() {
+    const btn = document.getElementById("btn-claim");
+    btn.disabled = true;
+    try {
+      showToast("⏳ Reclamando ganancias...");
+      const tx = await vaultContract.claim();
+      const receipt = await tx.wait();
+      
+      showToast(`✅ Ganancias Reclamadas. <a class='explorer-link' href='${CONFIG.EXPLORER}/tx/${receipt.hash}' target='_blank'>Ver Tx</a>`);
+      await actualizarSaldos();
+    } catch (e) {
+      handleGasError(e);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ==========================================
+  // UTILIDADES UI
+  // ==========================================
+  function switchTab(tab) {
+    document.querySelectorAll('.form-panel').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    
+    document.getElementById(`form-${tab}`).style.display = 'block';
+    document.getElementById(`tab-${tab.slice(0,3)}-btn`)?.classList.add('active'); // deposit->dep, withdraw->with
+    if(tab === 'claim') document.getElementById('tab-claim-btn').classList.add('active');
+  }
+
+  function setPercent(action, percent) {
+    if (action === 'deposit') {
+      const amount = (rawBalances.wnear * BigInt(percent)) / 100n;
+      document.getElementById('input-deposit').value = ethers.formatUnits(amount, CONFIG.DEC.WNEAR);
+    } else if (action === 'withdraw') {
+      const amount = (rawBalances.moro * BigInt(percent)) / 100n;
+      document.getElementById('input-withdraw').value = ethers.formatUnits(amount, CONFIG.DEC.MORO);
+    }
+  }
+
+  let toastTimeout;
+  function showToast(msg, isError = false) {
+    const toast = document.getElementById('toast');
+    toast.innerHTML = msg;
+    toast.className = `toast show ${isError ? 'error' : ''}`;
+    clearTimeout(toastTimeout);
+    if (!msg.includes("<a")) {
+      toastTimeout = setTimeout(() => { toast.classList.remove('show'); }, 4000);
+    } else {
+      // Si tiene enlace, dejarlo más tiempo para que el usuario pueda hacer clic
+      toastTimeout = setTimeout(() => { toast.classList.remove('show'); }, 10000);
+    }
+  }
+</script>
+
+</body>
+</html>
