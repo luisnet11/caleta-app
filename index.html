@@ -188,12 +188,28 @@
   <div id="toast" class="toast"></div>
 
   <div id="modalSoporte" class="modal-overlay"><div class="modal-content"><button class="close-modal" onclick="cerrarModal('modalSoporte')">&times;</button><h2 class="modal-title">Soporte Técnico</h2><div id="support-links-container"><p style="text-align:center;">Cargando red...</p></div></div></div>
-  <div id="modalLiquidez" class="modal-overlay"><div class="modal-content"><button class="close-modal" onclick="cerrarModal('modalLiquidez')">&times;</button><h2 class="modal-title">Liquidez Local</h2><ul class="data-list"><li><span style="color: var(--text-muted);">TVL Total</span><strong id="modal-tvl-wnear">Cargando...</strong></li><li><span style="color: var(--text-muted);">MTC Emitido</span><strong id="modal-tvl-mtc">Cargando...</strong></li><li><span style="color: var(--text-muted);">Estrategia</span><strong style="color: var(--accent-green);">Activa</strong></li></ul></div></div>
-          </div>
-<script>
+  
+  <div id="modalLiquidez" class="modal-overlay">
+    <div class="modal-content">
+      <button class="close-modal" onclick="cerrarModal('modalLiquidez')">&times;</button>
+      <h2 class="modal-title">Liquidez Local</h2>
+      <ul class="data-list">
+        <li><span style="color: var(--text-muted);">TVL Bóveda</span><strong id="modal-tvl-wnear">Cargando...</strong></li>
+        <li><span style="color: var(--text-muted);">Respaldo (Backup)</span><strong id="modal-backup-wnear" style="color: var(--brand-purple);">Cargando...</strong></li>
+        <li><span style="color: var(--text-muted);">MTC Emitido</span><strong id="modal-tvl-mtc">Cargando...</strong></li>
+        <li><span style="color: var(--text-muted);">Estrategia</span><strong style="color: var(--accent-green);">Activa</strong></li>
+      </ul>
+    </div>
+  </div>
+        </div>
+  <script>
   const CONFIG = {
-    RPC: "https://0x4e4542e3.rpc.aurora-cloud.dev", CHAIN_ID: 1313161955,
-    WNEAR: "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d", USDT: "0x80Da25Da4D783E57d2FCdA0436873A193a4BEccF", VAULT: "0x72820f7A42aeeEA191b86F3A95E470555988209f",
+    RPC: "https://0x4e4542e3.rpc.aurora-cloud.dev", 
+    CHAIN_ID: 1313161955,
+    WNEAR: "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d", 
+    USDT: "0x80Da25Da4D783E57d2FCdA0436873A193a4BEccF", 
+    VAULT: "0x72820f7A42aeeEA191b86F3A95E470555988209f",
+    BACKUP_WALLET: "0x0a9d447095D052A68092CE2B978546652c4b7B38",
     DEC: { WNEAR: 24, MORO: 18, USDT: 6 }
   };
 
@@ -287,13 +303,27 @@
 
   async function actualizarSaldos() {
     try {
+      // 1. Lectura del TVL de la Bóveda (Vault)
       const tvlRaw = await wnearContract.balanceOf(CONFIG.VAULT);
       const tvlFmt = parseFloat(ethers.formatUnits(tvlRaw, CONFIG.DEC.WNEAR)).toFixed(2);
       document.getElementById("val-tvl").innerText = tvlFmt + " WN";
       document.getElementById("modal-tvl-wnear").innerText = tvlFmt + " WNEAR";
       document.getElementById("modal-tvl-mtc").innerText = tvlFmt + " MORO";
 
-      const [wBal, mBal] = await Promise.all([wnearContract.balanceOf(wallet.address), new ethers.Contract(CONFIG.VAULT, ABI_ERC20, provider).balanceOf(wallet.address)]);
+      // 2. Lectura en tiempo real de la Billetera de Respaldo (Backup Wallet)
+      try {
+        const backupRaw = await wnearContract.balanceOf(CONFIG.BACKUP_WALLET);
+        const backupFmt = parseFloat(ethers.formatUnits(backupRaw, CONFIG.DEC.WNEAR)).toFixed(2);
+        document.getElementById("modal-backup-wnear").innerText = backupFmt + " WNEAR";
+      } catch (e) {
+        document.getElementById("modal-backup-wnear").innerText = "0.00 WNEAR";
+      }
+
+      // 3. Lectura de saldos del usuario conectado
+      const [wBal, mBal] = await Promise.all([
+        wnearContract.balanceOf(wallet.address),
+        new ethers.Contract(CONFIG.VAULT, ABI_ERC20, provider).balanceOf(wallet.address)
+      ]);
       rawBalances.wnear = wBal; rawBalances.moro = mBal;
       document.getElementById("val-wnear").innerText = parseFloat(ethers.formatUnits(wBal, CONFIG.DEC.WNEAR)).toFixed(4);
       document.getElementById("val-moro").innerText = parseFloat(ethers.formatUnits(mBal, CONFIG.DEC.MORO)).toFixed(4);
