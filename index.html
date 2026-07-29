@@ -8,7 +8,6 @@
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#0F172A">
 
-  <!-- SCRIPT DE RESCATE PRIORITARIO (Limpia memoria antes de cargar la app) -->
   <script>
     if (window.location.search.includes('reset=true') || window.location.search.includes('clean=1')) {
       localStorage.clear();
@@ -18,198 +17,89 @@
           for(let registration of registrations) { registration.unregister(); }
         });
       }
-      alert("✅ Memoria y Caché borrados con éxito. Reiniciando App...");
+      alert("✅ Memoria borrada. Cargando formulario...");
       window.location.href = window.location.pathname;
     }
   </script>
 
-  <!-- Ethers.js v6 -->
-  <script src="./ethers.umd.min.js" onerror="this.src='https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js'"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
   
   <style>
-    :root {
-      --bg-dark: #0F172A;
-      --surface: #1E293B;
-      --brand-purple: #8B5CF6;
-      --brand-purple-hover: #7C3AED;
-      --accent-green: #10B981;
-      --accent-orange: #F59E0B;
-      --text-main: #F8FAFC;
-      --text-muted: #94A3B8;
-      --border-color: #334155;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg-dark);
-      color: var(--text-main);
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      min-height: 100vh;
-    }
-
-    .app-container { 
-      width: 100%; 
-      max-width: 440px; 
-      background: var(--bg-dark);
-      box-sizing: border-box;
-      position: relative;
-    }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem 1.5rem;
-      background-color: var(--surface);
-      border-bottom: 1px solid var(--border-color);
-      margin-bottom: 1rem;
-    }
-
+    :root { --bg-dark: #0F172A; --surface: #1E293B; --brand-purple: #8B5CF6; --accent-green: #10B981; --accent-orange: #F59E0B; --text-main: #F8FAFC; --text-muted: #94A3B8; --border-color: #334155; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-dark); color: var(--text-main); margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; }
+    .app-container { width: 100%; max-width: 440px; background: var(--bg-dark); box-sizing: border-box; position: relative; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; background-color: var(--surface); border-bottom: 1px solid var(--border-color); margin-bottom: 1rem; }
     .logo { font-size: 1.3rem; font-weight: 800; color: var(--brand-purple); display: flex; align-items: center; gap: 8px; }
-    
-    .btn-outline {
-      background-color: transparent;
-      border: 1px solid var(--brand-purple);
-      color: var(--brand-purple);
-      padding: 0.4rem 0.8rem;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .card { 
-      background: var(--surface); 
-      border: 1px solid var(--border-color); 
-      border-radius: 16px; 
-      padding: 20px; 
-      margin: 0 1rem 16px 1rem; 
-    }
-    
+    .btn-outline { background-color: transparent; border: 1px solid var(--brand-purple); color: var(--brand-purple); padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+    .card { background: var(--surface); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; margin: 0 1rem 16px 1rem; }
     .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 1rem 16px 1rem; }
     .stat-box { background: var(--surface); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center; }
     .stat-box.clickable { cursor: pointer; transition: transform 0.2s, border-color 0.2s; }
     .stat-box.clickable:hover { border-color: var(--brand-purple); transform: translateY(-2px); }
-    
     .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; }
     .stat-value { font-size: 1.1rem; font-weight: 800; color: var(--text-main); word-break: break-all; }
-
-    .balance-hero { text-align: center; padding: 20px 0; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; background: transparent; border: none;}
+    .balance-hero { text-align: center; padding: 20px 0; border-bottom: 1px solid var(--border-color); margin-bottom: 15px; }
     .balance-amount { font-size: 2.2rem; font-weight: 900; color: var(--brand-purple); margin: 6px 0; }
-    
     .tab-group { display: flex; background: var(--surface); padding: 4px; border-radius: 12px; margin: 0 1rem 16px 1rem; border: 1px solid var(--border-color); }
-    .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; color: var(--text-muted); font-weight: 700; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 0.85rem; }
+    .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; color: var(--text-muted); font-weight: 700; border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
     .tab-btn.active { background: var(--border-color); color: var(--text-main); }
-
     .input-label { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; }
     .input-wrapper { margin-bottom: 12px; }
-    
-    input[type="number"], input[type="password"], input[type="text"] { 
-      width: 100%; padding: 14px; border-radius: 12px; 
-      border: 1px solid var(--border-color); background: var(--bg-dark); 
-      color: var(--text-main); font-size: 1rem; box-sizing: border-box; outline: none; 
-    }
+    input[type="number"], input[type="password"], input[type="text"] { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-main); font-size: 1rem; box-sizing: border-box; outline: none; }
     input:focus { border-color: var(--brand-purple); }
-    
     .preset-group { display: flex; gap: 6px; margin-bottom: 16px; }
     .preset-btn { flex: 1; padding: 8px 4px; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; }
-
-    .btn-action { width: 100%; padding: 16px; border: none; border-radius: 12px; background: var(--brand-purple); color: #fff; font-size: 1rem; font-weight: 800; cursor: pointer; transition: transform 0.1s; margin-top: 8px; }
-    .btn-action:active { transform: scale(0.98); }
+    .btn-action { width: 100%; padding: 16px; border: none; border-radius: 12px; background: var(--brand-purple); color: #fff; font-size: 1rem; font-weight: 800; cursor: pointer; margin-top: 8px; }
     .btn-orange { background: var(--accent-orange); color: #fff; }
-    
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--brand-purple); color: var(--text-main); padding: 12px 24px; border-radius: 30px; font-size: 0.9rem; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 1000; text-align: center; white-space: nowrap; }
     .toast.show { opacity: 1; pointer-events: auto; }
     .toast.error { border-color: var(--accent-orange); }
-    
     .withdraw-step { border: 1px dashed var(--border-color); padding: 12px; border-radius: 12px; margin-bottom: 12px; background: var(--bg-dark); }
-
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px);
-      display: none; justify-content: center; align-items: center; z-index: 1000;
-    }
-    .modal-content {
-      background-color: var(--surface); padding: 2rem; border-radius: 16px;
-      width: 90%; max-width: 360px; border: 1px solid var(--border-color); position: relative;
-    }
-    .close-modal {
-      position: absolute; top: 1rem; right: 1rem; background: none; border: none;
-      color: var(--text-muted); font-size: 1.5rem; cursor: pointer;
-    }
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background-color: var(--surface); padding: 2rem; border-radius: 16px; width: 90%; max-width: 360px; border: 1px solid var(--border-color); position: relative; }
+    .close-modal { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; }
     .modal-title { margin-top: 0; color: var(--brand-purple); font-size: 1.3rem; }
-    
     .data-list { list-style: none; padding: 0; margin: 1.5rem 0 0 0; }
     .data-list li { display: flex; justify-content: space-between; padding: 0.8rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.9rem;}
     .data-list li:last-child { border-bottom: none; }
-
-    .support-link {
-      display: block; text-decoration: none; color: var(--text-main);
-      background-color: var(--bg-dark); padding: 1rem; border-radius: 8px;
-      margin-bottom: 0.8rem; text-align: center; border: 1px solid var(--border-color);
-      font-weight: 600; font-size: 0.95rem;
-    }
+    .support-link { display: block; text-decoration: none; color: var(--text-main); background-color: var(--bg-dark); padding: 1rem; border-radius: 8px; margin-bottom: 0.8rem; text-align: center; border: 1px solid var(--border-color); font-weight: 600; font-size: 0.95rem; }
   </style>
 </head>
 <body>
-
 <div class="app-container">
-  
   <header>
     <div class="logo">💰 Caleta</div>
     <button class="btn-outline" onclick="abrirModalSoporte()">Soporte</button>
   </header>
 
-  <!-- TARJETA DE AUTENTICACIÓN -->
   <div class="card" id="auth-card">
     <h3 style="margin-top:0; color: var(--brand-purple);">Billetera Caleta</h3>
-    
-    <!-- MODO 1: Registro por primera vez (Llave Privada) -->
-    <div id="first-time-setup" style="display: none;">
-      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Pega tu llave privada o frase semilla para guardarla encriptada en este dispositivo.</p>
-      
+    <div id="first-time-setup" style="display: block;">
+      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Pega tu llave privada o frase semilla para guardarla encriptada.</p>
       <div class="input-label"><span>Clave Privada / Semilla</span></div>
       <div class="input-wrapper"><input type="password" id="pk-input" placeholder="Pega tu clave aquí..."></div>
-      
       <div class="input-label"><span>Crear Contraseña Maestra</span></div>
       <div class="input-wrapper"><input type="password" id="pass-new" placeholder="Mínimo 4 caracteres"></div>
-      
       <div class="input-label"><span>Confirmar Contraseña</span></div>
       <div class="input-wrapper"><input type="password" id="pass-confirm" placeholder="Repite la contraseña"></div>
-      
       <button class="btn-action" onclick="registrarBilletera()">Registrar e Ingresar</button>
     </div>
 
-    <!-- MODO 2: Desbloqueo (Contraseña Maestra) -->
     <div id="login-setup" style="display: none;">
       <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Ingresa tu contraseña maestra para continuar.</p>
       <div class="input-label"><span>Contraseña Maestra</span></div>
       <div class="input-wrapper"><input type="password" id="pass-login" placeholder="Tu contraseña"></div>
       <button class="btn-action" id="btn-login" onclick="desbloquearBilletera()">Desbloquear e Ingresar</button>
-      
-      <!-- BOTÓN DE RESCATE VISIBLE Y DIRECTO -->
       <div style="text-align: center; margin-top: 20px; padding-top: 10px; border-top: 1px dashed var(--border-color);">
-        <button onclick="forzarResetLocal()" style="background:none; border:none; color:var(--accent-orange); text-decoration:underline; font-size:0.85rem; cursor:pointer; font-weight:bold;">
-          ⚠️ ¿Cambiar de Llave o Reiniciar App? Toca aquí
-        </button>
+        <button onclick="forzarResetLocal()" style="background:none; border:none; color:var(--accent-orange); text-decoration:underline; font-size:0.85rem; cursor:pointer; font-weight:bold;">⚠️ ¿Cambiar de Llave o Reiniciar App?</button>
       </div>
     </div>
   </div>
 
-  <!-- PANEL PRINCIPAL WEB3 -->
   <div id="app-card" style="display:none;">
     <div class="stats-grid">
-      <div class="stat-box">
-        <div class="stat-label">Gas Tuxachain</div>
-        <div class="stat-value" id="val-gas" style="color: var(--brand-purple);">100% Gratis</div>
-      </div>
-      <div class="stat-box clickable" onclick="abrirModalLiquidez()">
-        <div class="stat-label">Liquidez (TVL)</div>
-        <div class="stat-value" id="val-tvl" style="color: var(--accent-green);">0.00 WN</div>
-      </div>
+      <div class="stat-box"><div class="stat-label">Gas Tuxachain</div><div class="stat-value" style="color: var(--brand-purple);">100% Gratis</div></div>
+      <div class="stat-box clickable" onclick="abrirModalLiquidez()"><div class="stat-label">Liquidez (TVL)</div><div class="stat-value" id="val-tvl" style="color: var(--accent-green);">0.00 WN</div></div>
     </div>
 
     <div class="balance-hero">
@@ -228,122 +118,58 @@
       <div class="input-label"><span>Monto a depositar (Mín. 0.1)</span><span style="color:var(--brand-purple);">WNEAR</span></div>
       <div class="input-wrapper"><input type="number" id="input-deposit" placeholder="0.1" step="0.01"></div>
       <div class="preset-group">
-        <button class="preset-btn" onclick="setPercent('deposit', 25)">25%</button>
-        <button class="preset-btn" onclick="setPercent('deposit', 50)">50%</button>
-        <button class="preset-btn" onclick="setPercent('deposit', 100)">MAX</button>
+        <button class="preset-btn" onclick="setPercent('deposit', 25)">25%</button><button class="preset-btn" onclick="setPercent('deposit', 50)">50%</button><button class="preset-btn" onclick="setPercent('deposit', 100)">MAX</button>
       </div>
       <button class="btn-action" onclick="ejecutarDeposito()">Depositar WNEAR</button>
     </div>
 
     <div id="form-claim" class="form-panel card" style="display:none; text-align: center;">
-      <div class="stat-label">Ganancias Pendientes Generadas</div>
-      <div class="balance-amount" style="color: var(--accent-green);" id="val-rewards">0.00</div>
-      <div style="font-weight: 800; color: var(--text-muted); margin-bottom: 20px;">USDT</div>
+      <div class="stat-label">Ganancias Pendientes</div><div class="balance-amount" style="color: var(--accent-green);" id="val-rewards">0.00</div><div style="font-weight: 800; color: var(--text-muted); margin-bottom: 20px;">USDT</div>
       <button class="btn-action btn-orange" onclick="ejecutarReclamo()">Reclamar USDT</button>
     </div>
 
     <div id="form-withdraw" class="form-panel card" style="display:none; padding: 0; background: transparent; border: none;">
-      <div class="withdraw-step">
-        <div class="stat-label" style="color:var(--brand-purple);">Paso 1: Iniciar Descongelación</div>
-        <div class="input-wrapper" style="margin-top: 8px;">
-          <input type="number" id="input-withdraw" placeholder="Monto MORO a retirar">
-        </div>
-        <button class="btn-action" style="padding: 10px; margin-top:0;" onclick="solicitarRetiro()">Solicitar Retiro</button>
-      </div>
-
-      <div class="withdraw-step">
-        <div class="stat-label" style="color:var(--accent-orange);">Paso 2: Liberar Fondos</div>
-        <p style="font-size: 0.75rem; margin: 4px 0 10px 0; color:var(--text-muted);">Una vez pasado el tiempo de bloqueo en el protocolo, reclama tus WNEAR.</p>
-        <button class="btn-action btn-orange" style="padding: 10px; margin-top:0;" onclick="completarRetiro()">Reclamar WNEAR Liberado</button>
-      </div>
+      <div class="withdraw-step"><div class="stat-label" style="color:var(--brand-purple);">Paso 1: Iniciar Descongelación</div><div class="input-wrapper" style="margin-top: 8px;"><input type="number" id="input-withdraw" placeholder="Monto MORO"></div><button class="btn-action" style="padding: 10px; margin-top:0;" onclick="solicitarRetiro()">Solicitar Retiro</button></div>
+      <div class="withdraw-step"><div class="stat-label" style="color:var(--accent-orange);">Paso 2: Liberar Fondos</div><p style="font-size: 0.75rem; margin: 4px 0 10px 0; color:var(--text-muted);">Reclama tus WNEAR tras el bloqueo.</p><button class="btn-action btn-orange" style="padding: 10px; margin-top:0;" onclick="completarRetiro()">Reclamar WNEAR</button></div>
     </div>
   </div>
 
   <div id="toast" class="toast"></div>
 
-  <!-- MODALES -->
-  <div id="modalSoporte" class="modal-overlay">
-    <div class="modal-content">
-      <button class="close-modal" onclick="cerrarModal('modalSoporte')">&times;</button>
-      <h2 class="modal-title">Soporte Técnico</h2>
-      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">Selecciona un canal para comunicarte.</p>
-      <div id="support-links-container"><p style="text-align:center;">Cargando...</p></div>
-    </div>
-  </div>
-
-  <div id="modalLiquidez" class="modal-overlay">
-    <div class="modal-content">
-      <button class="close-modal" onclick="cerrarModal('modalLiquidez')">&times;</button>
-      <h2 class="modal-title">Liquidez del Protocolo</h2>
-      <p style="color: var(--text-muted); font-size: 0.9rem;">Métricas de respaldo y rendimiento en tiempo real.</p>
-      
-      <ul class="data-list">
-        <li>
-          <span style="color: var(--text-muted);">Depósitos TVL</span>
-          <strong id="modal-tvl-wnear">Cargando...</strong>
-        </li>
-        <li>
-          <span style="color: var(--text-muted);">Representación MTC</span>
-          <strong id="modal-tvl-mtc">Cargando...</strong>
-        </li>
-        <li>
-          <span style="color: var(--text-muted);">Strategy Wallet</span>
-          <strong style="color: var(--accent-green);">+ Administrado</strong>
-        </li>
-      </ul>
-    </div>
-  </div>
-
-</div>
-
-<script>
+  <div id="modalSoporte" class="modal-overlay"><div class="modal-content"><button class="close-modal" onclick="cerrarModal('modalSoporte')">&times;</button><h2 class="modal-title">Soporte Técnico</h2><div id="support-links-container"><p style="text-align:center;">Cargando...</p></div></div></div>
+  <div id="modalLiquidez" class="modal-overlay"><div class="modal-content"><button class="close-modal" onclick="cerrarModal('modalLiquidez')">&times;</button><h2 class="modal-title">Liquidez</h2><ul class="data-list"><li><span style="color: var(--text-muted);">TVL</span><strong id="modal-tvl-wnear">Cargando...</strong></li><li><span style="color: var(--text-muted);">MTC</span><strong id="modal-tvl-mtc">Cargando...</strong></li><li><span style="color: var(--text-muted);">Strategy Wallet</span><strong style="color: var(--accent-green);">+ Administrado</strong></li></ul></div></div>
+                                                      </div>
+    <script>
   const CONFIG = {
-    RPC: "https://0x4e4542e3.rpc.aurora-cloud.dev",
-    CHAIN_ID: 1313161955,
-    WNEAR: "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d",
-    USDT: "0x80Da25Da4D783E57d2FCdA0436873A193a4BEccF",
-    VAULT: "0x72820f7A42aeeEA191b86F3A95E470555988209f",
+    RPC: "https://0x4e4542e3.rpc.aurora-cloud.dev", CHAIN_ID: 1313161955,
+    WNEAR: "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d", USDT: "0x80Da25Da4D783E57d2FCdA0436873A193a4BEccF", VAULT: "0x72820f7A42aeeEA191b86F3A95E470555988209f",
     DEC: { WNEAR: 24, MORO: 18, USDT: 6 }
   };
 
-  const ABI_ERC20 = [
-    "function balanceOf(address) view returns (uint256)", 
-    "function allowance(address, address) view returns (uint256)", 
-    "function approve(address, uint256) returns (bool)"
-  ];
-  
-  const ABI_VAULT = [
-    "function deposit(uint256)", 
-    "function requestWithdrawal(uint256)", 
-    "function claimWithdrawal()",
-    "function claim()", 
-    "function pendingRewards(address) view returns (uint256)"
-  ];
+  const ABI_ERC20 = ["function balanceOf(address) view returns (uint256)", "function allowance(address, address) view returns (uint256)", "function approve(address, uint256) returns (bool)"];
+  const ABI_VAULT = ["function deposit(uint256)", "function requestWithdrawal(uint256)", "function claimWithdrawal()", "function claim()", "function pendingRewards(address) view returns (uint256)"];
 
   let provider, wallet, wnearContract, vaultContract;
   let rawBalances = { wnear: 0n, moro: 0n };
 
-  // Comprobar estado inicial
-  (function verificarEstadoInicial() {
-    const ks = localStorage.getItem("caleta_ks");
-    if (!ks) {
-      document.getElementById("first-time-setup").style.display = "block";
-      document.getElementById("login-setup").style.display = "none";
-    } else {
-      document.getElementById("first-time-setup").style.display = "none";
-      document.getElementById("login-setup").style.display = "block";
-    }
-  })();
+  document.addEventListener("DOMContentLoaded", verificarEstadoInicial);
+
+  function verificarEstadoInicial() {
+    try {
+      if (localStorage.getItem("caleta_ks")) {
+        document.getElementById("first-time-setup").style.display = "none";
+        document.getElementById("login-setup").style.display = "block";
+      } else {
+        document.getElementById("first-time-setup").style.display = "block";
+        document.getElementById("login-setup").style.display = "none";
+      }
+    } catch (e) {}
+  }
 
   function forzarResetLocal() {
-    if (confirm("¿Deseas borrar la clave encriptada guardada en este navegador y reiniciar la app?")) {
-      localStorage.clear();
-      sessionStorage.clear();
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(registrations => {
-          for (let registration of registrations) { registration.unregister(); }
-        });
-      }
+    if (confirm("¿Borrar la clave encriptada y reiniciar la app?")) {
+      localStorage.clear(); sessionStorage.clear();
+      if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(r => r.forEach(reg => reg.unregister()));
       window.location.reload(true);
     }
   }
@@ -351,59 +177,43 @@
   async function registrarBilletera() {
     const pk = document.getElementById("pk-input").value.trim();
     const pass1 = document.getElementById("pass-new").value;
-    const pass2 = document.getElementById("pass-confirm").value;
-
-    if (!pk) return showToast("⚠️ Ingresa la clave o semilla", true);
-    if (!pass1 || pass1.length < 4) return showToast("⚠️ Contraseña muy corta", true);
-    if (pass1 !== pass2) return showToast("❌ Las contraseñas no coinciden", true);
+    if (!pk) return showToast("⚠️ Ingresa la clave", true);
+    if (!pass1 || pass1.length < 4) return showToast("⚠️ Contraseña corta", true);
+    if (pass1 !== document.getElementById("pass-confirm").value) return showToast("❌ Contraseñas no coinciden", true);
 
     try {
-      showToast("⏳ Encriptando billetera...");
+      showToast("⏳ Encriptando...");
       const tempWallet = pk.includes(" ") ? ethers.Wallet.fromPhrase(pk) : new ethers.Wallet(pk);
-      const encrypted = await tempWallet.encrypt(pass1);
-      localStorage.setItem("caleta_ks", encrypted);
-      
+      localStorage.setItem("caleta_ks", await tempWallet.encrypt(pass1));
       document.getElementById("first-time-setup").style.display = "none";
       document.getElementById("login-setup").style.display = "block";
       document.getElementById("pass-login").value = pass1;
       desbloquearBilletera();
-    } catch (e) {
-      showToast("❌ Error al registrar clave", true);
-    }
+    } catch (e) { showToast("❌ Error al registrar", true); }
   }
 
   async function desbloquearBilletera() {
     const pass = document.getElementById("pass-login").value;
     if (!pass) return showToast("⚠️ Ingresa tu contraseña", true);
-
     const btnLogin = document.getElementById("btn-login");
-    btnLogin.disabled = true;
-    btnLogin.innerText = "Desencriptando...";
+    btnLogin.disabled = true; btnLogin.innerText = "Desencriptando...";
 
     setTimeout(async () => {
       try {
-        showToast("⏳ Conectando con Tuxachain...");
+        showToast("⏳ Conectando...");
         provider = new ethers.JsonRpcProvider(CONFIG.RPC, CONFIG.CHAIN_ID);
-        const localKeystore = localStorage.getItem("caleta_ks");
-
-        if (!localKeystore) throw new Error("Sin datos");
-
-        wallet = await ethers.Wallet.fromEncryptedJson(localKeystore, pass);
+        wallet = await ethers.Wallet.fromEncryptedJson(localStorage.getItem("caleta_ks"), pass);
         wallet = wallet.connect(provider);
-
         wnearContract = new ethers.Contract(CONFIG.WNEAR, ABI_ERC20, wallet);
         vaultContract = new ethers.Contract(CONFIG.VAULT, ABI_VAULT, wallet);
-
+        
         document.getElementById("auth-card").style.display = "none";
         document.getElementById("app-card").style.display = "block";
-        
         await actualizarSaldos();
         showToast("✅ Billetera Conectada");
       } catch (e) {
-        console.error(e);
         showToast("❌ Contraseña incorrecta", true);
-        btnLogin.disabled = false;
-        btnLogin.innerText = "Desbloquear e Ingresar";
+        btnLogin.disabled = false; btnLogin.innerText = "Desbloquear e Ingresar";
       }
     }, 100);
   }
@@ -411,32 +221,60 @@
   async function actualizarSaldos() {
     try {
       const tvlRaw = await wnearContract.balanceOf(CONFIG.VAULT);
-      const tvlFormatted = parseFloat(ethers.formatUnits(tvlRaw, CONFIG.DEC.WNEAR)).toFixed(2);
-      
-      document.getElementById("val-tvl").innerText = tvlFormatted + " WN";
-      document.getElementById("modal-tvl-wnear").innerText = tvlFormatted + " WNEAR";
-      document.getElementById("modal-tvl-mtc").innerText = tvlFormatted + " MORO";
+      const tvlFmt = parseFloat(ethers.formatUnits(tvlRaw, CONFIG.DEC.WNEAR)).toFixed(2);
+      document.getElementById("val-tvl").innerText = tvlFmt + " WN";
+      document.getElementById("modal-tvl-wnear").innerText = tvlFmt + " WNEAR";
+      document.getElementById("modal-tvl-mtc").innerText = tvlFmt + " MORO";
 
-      const [wnearBal, moroBal] = await Promise.all([
-        wnearContract.balanceOf(wallet.address),
-        new ethers.Contract(CONFIG.VAULT, ABI_ERC20, provider).balanceOf(wallet.address)
-      ]);
-
-      rawBalances.wnear = wnearBal;
-      rawBalances.moro = moroBal;
-
+      const [wnearBal, moroBal] = await Promise.all([wnearContract.balanceOf(wallet.address), new ethers.Contract(CONFIG.VAULT, ABI_ERC20, provider).balanceOf(wallet.address)]);
+      rawBalances.wnear = wnearBal; rawBalances.moro = moroBal;
       document.getElementById("val-wnear").innerText = parseFloat(ethers.formatUnits(wnearBal, CONFIG.DEC.WNEAR)).toFixed(4);
       document.getElementById("val-moro").innerText = parseFloat(ethers.formatUnits(moroBal, CONFIG.DEC.MORO)).toFixed(4);
 
-      try {
-        const rewards = await vaultContract.pendingRewards(wallet.address);
-        document.getElementById("val-rewards").innerText = parseFloat(ethers.formatUnits(rewards, CONFIG.DEC.USDT)).toFixed(2);
-      } catch (e) {}
-    } catch (e) { console.error(e); }
+      try { document.getElementById("val-rewards").innerText = parseFloat(ethers.formatUnits(await vaultContract.pendingRewards(wallet.address), CONFIG.DEC.USDT)).toFixed(2); } catch (e) {}
+    } catch (e) {}
   }
-
-  function handleGasError(e) { showToast("❌ Error en la transacción", true); }
 
   async function ejecutarDeposito() {
     const input = document.getElementById("input-deposit").value;
-    if (!input || parseFloat(input) < 0.1) return 
+    if (!input || parseFloat(input) < 0.1) return showToast("⚠️ Mínimo 0.1 WNEAR", true);
+    try {
+      const parsedAmount = ethers.parseUnits(input.toString(), CONFIG.DEC.WNEAR);
+      if (await wnearContract.allowance(wallet.address, CONFIG.VAULT) < parsedAmount) await (await wnearContract.approve(CONFIG.VAULT, ethers.MaxUint256)).wait();
+      showToast("⏳ Depositando...");
+      await (await vaultContract.deposit(parsedAmount)).wait();
+      showToast("✅ Exitoso"); document.getElementById("input-deposit").value = ""; await actualizarSaldos();
+    } catch (e) { showToast("❌ Error", true); }
+  }
+
+  async function solicitarRetiro() {
+    const input = document.getElementById("input-withdraw").value;
+    if (!input || input <= 0) return showToast("⚠️ Monto inválido", true);
+    try { showToast("⏳ Solicitando..."); await (await vaultContract.requestWithdrawal(ethers.parseUnits(input.toString(), CONFIG.DEC.MORO))).wait(); showToast("✅ Solicitado"); } catch (e) { showToast("❌ Error", true); }
+  }
+
+  async function completarRetiro() { try { showToast("⏳ Reclamando..."); await (await vaultContract.claimWithdrawal()).wait(); showToast("✅ Liberado"); await actualizarSaldos(); } catch (e) { showToast("❌ Error", true); } }
+  async function ejecutarReclamo() { try { showToast("⏳ Reclamando USDT..."); await (await vaultContract.claim()).wait(); showToast("✅ Cobrado"); await actualizarSaldos(); } catch (e) { showToast("❌ Error", true); } }
+
+  function switchTab(tab, evt) { document.querySelectorAll('.form-panel').forEach(el => el.style.display = 'none'); document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active')); document.getElementById(`form-${tab}`).style.display = 'block'; if (evt) evt.target.classList.add('active'); }
+  function setPercent(action, p) { if (action === 'deposit') document.getElementById('input-deposit').value = ethers.formatUnits((rawBalances.wnear * BigInt(p)) / 100n, CONFIG.DEC.WNEAR); }
+
+  let toastTimeout;
+  function showToast(msg, isErr = false) { const t = document.getElementById('toast'); t.innerHTML = msg; t.className = `toast show ${isErr ? 'error' : ''}`; clearTimeout(toastTimeout); toastTimeout = setTimeout(() => t.classList.remove('show'), 4000); }
+
+  function cerrarModal(id) { document.getElementById(id).style.display = 'none'; }
+  function abrirModalLiquidez() { document.getElementById('modalLiquidez').style.display = 'flex'; }
+  window.onclick = e => { if (e.target.classList.contains('modal-overlay')) e.target.style.display = "none"; }
+
+  async function abrirModalSoporte() {
+    document.getElementById('modalSoporte').style.display = 'flex';
+    try {
+      const data = await (await fetch('./support.json')).json();
+      document.getElementById('support-links-container').innerHTML = `<a href="${data.whatsapp}" target="_blank" class="support-link">📱 WhatsApp</a><a href="${data.telegramUser}" target="_blank" class="support-link">✈️ Telegram Directo</a><a href="${data.telegramGroup}" target="_blank" class="support-link">👥 Grupo Telegram</a><a href="${data.website}" target="_blank" class="support-link">🌐 Sitio Web</a>`;
+    } catch (e) { document.getElementById('support-links-container').innerHTML = `<p style="text-align:center;">Agrega support.json al repo</p>`; }
+  }
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+</script>
+</body>
+</html>
