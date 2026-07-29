@@ -152,10 +152,11 @@
     <button class="btn-outline" onclick="abrirModalSoporte()">Soporte</button>
   </header>
 
-  <!-- Autenticación / Registro (Vuelve a ser visible si no hay caché) -->
+  <!-- Autenticación / Registro -->
   <div class="card" id="auth-card">
     <h3 style="margin-top:0; color: var(--brand-purple);">Billetera Caleta</h3>
     
+    <!-- Registro por primera vez -->
     <div id="first-time-setup" style="display: none;">
       <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Registra tu clave privada para encriptarla de forma segura en este dispositivo.</p>
       
@@ -171,15 +172,23 @@
       <button class="btn-action" onclick="registrarBilletera()">Registrar e Ingresar</button>
     </div>
 
-    <div id="login-setup">
+    <!-- Login -->
+    <div id="login-setup" style="display: none;">
       <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Ingresa tu contraseña maestra para desencriptar tu sesión.</p>
       <div class="input-label"><span>Contraseña Maestra</span></div>
       <div class="input-wrapper"><input type="password" id="pass-login" placeholder="Ingresa tu contraseña"></div>
       <button class="btn-action" id="btn-login" onclick="desbloquearBilletera()">Desbloquear e Ingresar</button>
+      
+      <!-- Botón de Rescate si la app se congela -->
+      <div style="text-align: center; margin-top: 15px;">
+        <button onclick="forzarResetLocal()" style="background:none; border:none; color:var(--accent-orange); text-decoration:underline; font-size:0.8rem; cursor:pointer;">
+          ¿Se congeló o quieres registrar otra clave? Restablecer App
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- Panel Principal Web3 (Oculto hasta iniciar sesión) -->
+  <!-- Panel Principal Web3 -->
   <div id="app-card" style="display:none;">
     
     <div class="stats-grid">
@@ -307,13 +316,32 @@
   let provider, wallet, wnearContract, vaultContract;
   let rawBalances = { wnear: 0n, moro: 0n };
 
-  // 1. Detección de sesión al abrir la app
-  document.addEventListener("DOMContentLoaded", () => {
-    if (!localStorage.getItem("caleta_ks")) {
+  // 1. Verificación inmediata de estado local
+  (function verificarEstadoInicial() {
+    const ks = localStorage.getItem("caleta_ks");
+    if (!ks) {
       document.getElementById("first-time-setup").style.display = "block";
       document.getElementById("login-setup").style.display = "none";
+    } else {
+      document.getElementById("first-time-setup").style.display = "none";
+      document.getElementById("login-setup").style.display = "block";
     }
-  });
+  })();
+
+  // Botón de reseteo rápido para evitar bloqueos
+  function forzarResetLocal() {
+    if (confirm("¿Deseas borrar la clave encriptada guardada en este navegador y reiniciar la app?")) {
+      localStorage.clear();
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          for (let registration of registrations) {
+            registration.unregister();
+          }
+        });
+      }
+      window.location.reload(true);
+    }
+  }
 
   // 2. Autenticación Local
   async function registrarBilletera() {
@@ -344,25 +372,37 @@
     const pass = document.getElementById("pass-login").value;
     if (!pass) return showToast("⚠️ Ingresa tu contraseña", true);
 
-    try {
-      showToast("⏳ Conectando con Tuxachain...");
-      provider = new ethers.JsonRpcProvider(CONFIG.RPC, CONFIG.CHAIN_ID);
-      const localKeystore = localStorage.getItem("caleta_ks");
+    const btnLogin = document.getElementById("btn-login");
+    btnLogin.disabled = true;
+    btnLogin.innerText = "Desencriptando...";
 
-      wallet = await ethers.Wallet.fromEncryptedJson(localKeystore, pass);
-      wallet = wallet.connect(provider);
+    // Usamos setTimeout para no bloquear el hilo gráfico del móvil
+    setTimeout(async () => {
+      try {
+        showToast("⏳ Conectando con Tuxachain...");
+        provider = new ethers.JsonRpcProvider(CONFIG.RPC, CONFIG.CHAIN_ID);
+        const localKeystore = localStorage.getItem("caleta_ks");
 
-      wnearContract = new ethers.Contract(CONFIG.WNEAR, ABI_ERC20, wallet);
-      vaultContract = new ethers.Contract(CONFIG.VAULT, ABI_VAULT, wallet);
+        if (!localKeystore) throw new Error("No hay datos guardados");
 
-      document.getElementById("auth-card").style.display = "none";
-      document.getElementById("app-card").style.display = "block";
-      
-      await actualizarSaldos();
-      showToast("✅ Billetera Conectada");
-    } catch (e) {
-      showToast("❌ Contraseña incorrecta", true);
-    }
+        wallet = await ethers.Wallet.fromEncryptedJson(localKeystore, pass);
+        wallet = wallet.connect(provider);
+
+        wnearContract = new ethers.Contract(CONFIG.WNEAR, ABI_ERC20, wallet);
+        vaultContract = new ethers.Contract(CONFIG.VAULT, ABI_VAULT, wallet);
+
+        document.getElementById("auth-card").style.display = "none";
+        document.getElementById("app-card").style.display = "block";
+        
+        await actualizarSaldos();
+        showToast("✅ Billetera Conectada");
+      } catch (e) {
+        console.error(e);
+        showToast("❌ Contraseña incorrecta o datos corruptos", true);
+        btnLogin.disabled = false;
+        btnLogin.innerText = "Desbloquear e Ingresar";
+      }
+    }, 100);
   }
 
   // 3. Consultas Web3
@@ -402,48 +442,4 @@
     
     try {
       const parsedAmount = ethers.parseUnits(input.toString(), CONFIG.DEC.WNEAR);
-      const allowance = await wnearContract.allowance(wallet.address, CONFIG.VAULT);
-      
-      if (allowance < parsedAmount) {
-        showToast("⏳ Aprobando WNEAR...");
-        const txApprove = await wnearContract.approve(CONFIG.VAULT, ethers.MaxUint256);
-        await txApprove.wait();
-      }
-
-      showToast("⏳ Depositando en el protocolo...");
-      const txDep = await vaultContract.deposit(parsedAmount);
-      await txDep.wait();
-      
-      showToast("✅ Depósito Exitoso");
-      document.getElementById("input-deposit").value = "";
-      await actualizarSaldos();
-    } catch (e) { handleGasError(e); }
-  }
-
-  async function solicitarRetiro() {
-    const input = document.getElementById("input-withdraw").value;
-    if (!input || input <= 0) return showToast("⚠️ Monto inválido", true);
-    try {
-      const parsedAmount = ethers.parseUnits(input.toString(), CONFIG.DEC.MORO);
-      showToast("⏳ Solicitando descongelación...");
-      const tx = await vaultContract.requestWithdrawal(parsedAmount);
-      await tx.wait();
-      showToast("✅ Retiro solicitado. Espera la liberación.");
-    } catch (e) { handleGasError(e); }
-  }
-
-  async function completarRetiro() {
-    try {
-      showToast("⏳ Reclamando WNEAR liberado...");
-      const tx = await vaultContract.claimWithdrawal();
-      await tx.wait();
-      showToast("✅ WNEAR retirado con éxito");
-      await actualizarSaldos();
-    } catch (e) { handleGasError(e); }
-  }
-
-  async function ejecutarReclamo() {
-    try {
-      showToast("⏳ Reclamando recompensas USDT...");
-      const tx = await vaultContract.claim();
-      a
+      const allowance = await wnearContract.allo
