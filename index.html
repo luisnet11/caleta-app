@@ -7,12 +7,26 @@
   
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#0F172A">
-  
+
+  <!-- SCRIPT DE RESCATE PRIORITARIO (Limpia memoria antes de cargar la app) -->
+  <script>
+    if (window.location.search.includes('reset=true') || window.location.search.includes('clean=1')) {
+      localStorage.clear();
+      sessionStorage.clear();
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) { registration.unregister(); }
+        });
+      }
+      alert("✅ Memoria y Caché borrados con éxito. Reiniciando App...");
+      window.location.href = window.location.pathname;
+    }
+  </script>
+
   <!-- Ethers.js v6 -->
   <script src="./ethers.umd.min.js" onerror="this.src='https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js'"></script>
   
   <style>
-    /* --- PALETA DE COLORES DARK MODE --- */
     :root {
       --bg-dark: #0F172A;
       --surface: #1E293B;
@@ -44,7 +58,6 @@
       position: relative;
     }
 
-    /* Navegación Superior */
     header {
       display: flex;
       justify-content: space-between;
@@ -94,7 +107,6 @@
     .input-label { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; }
     .input-wrapper { margin-bottom: 12px; }
     
-    /* Inputs Dark Mode */
     input[type="number"], input[type="password"], input[type="text"] { 
       width: 100%; padding: 14px; border-radius: 12px; 
       border: 1px solid var(--border-color); background: var(--bg-dark); 
@@ -115,7 +127,6 @@
     
     .withdraw-step { border: 1px dashed var(--border-color); padding: 12px; border-radius: 12px; margin-bottom: 12px; background: var(--bg-dark); }
 
-    /* --- ESTILOS DE MODALES --- */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px);
@@ -152,45 +163,44 @@
     <button class="btn-outline" onclick="abrirModalSoporte()">Soporte</button>
   </header>
 
-  <!-- Autenticación / Registro -->
+  <!-- TARJETA DE AUTENTICACIÓN -->
   <div class="card" id="auth-card">
     <h3 style="margin-top:0; color: var(--brand-purple);">Billetera Caleta</h3>
     
-    <!-- Registro por primera vez -->
+    <!-- MODO 1: Registro por primera vez (Llave Privada) -->
     <div id="first-time-setup" style="display: none;">
-      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Registra tu clave privada para encriptarla de forma segura en este dispositivo.</p>
+      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Pega tu llave privada o frase semilla para guardarla encriptada en este dispositivo.</p>
       
-      <div class="input-label"><span>Clave Privada o Frase Semilla</span></div>
+      <div class="input-label"><span>Clave Privada / Semilla</span></div>
       <div class="input-wrapper"><input type="password" id="pk-input" placeholder="Pega tu clave aquí..."></div>
       
       <div class="input-label"><span>Crear Contraseña Maestra</span></div>
-      <div class="input-wrapper"><input type="password" id="pass-new" placeholder="Crea una contraseña"></div>
+      <div class="input-wrapper"><input type="password" id="pass-new" placeholder="Mínimo 4 caracteres"></div>
       
-      <div class="input-label"><span>Confirmar Contraseña Maestra</span></div>
+      <div class="input-label"><span>Confirmar Contraseña</span></div>
       <div class="input-wrapper"><input type="password" id="pass-confirm" placeholder="Repite la contraseña"></div>
       
       <button class="btn-action" onclick="registrarBilletera()">Registrar e Ingresar</button>
     </div>
 
-    <!-- Login -->
+    <!-- MODO 2: Desbloqueo (Contraseña Maestra) -->
     <div id="login-setup" style="display: none;">
-      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Ingresa tu contraseña maestra para desencriptar tu sesión.</p>
+      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Ingresa tu contraseña maestra para continuar.</p>
       <div class="input-label"><span>Contraseña Maestra</span></div>
-      <div class="input-wrapper"><input type="password" id="pass-login" placeholder="Ingresa tu contraseña"></div>
+      <div class="input-wrapper"><input type="password" id="pass-login" placeholder="Tu contraseña"></div>
       <button class="btn-action" id="btn-login" onclick="desbloquearBilletera()">Desbloquear e Ingresar</button>
       
-      <!-- Botón de Rescate si la app se congela -->
-      <div style="text-align: center; margin-top: 15px;">
-        <button onclick="forzarResetLocal()" style="background:none; border:none; color:var(--accent-orange); text-decoration:underline; font-size:0.8rem; cursor:pointer;">
-          ¿Se congeló o quieres registrar otra clave? Restablecer App
+      <!-- BOTÓN DE RESCATE VISIBLE Y DIRECTO -->
+      <div style="text-align: center; margin-top: 20px; padding-top: 10px; border-top: 1px dashed var(--border-color);">
+        <button onclick="forzarResetLocal()" style="background:none; border:none; color:var(--accent-orange); text-decoration:underline; font-size:0.85rem; cursor:pointer; font-weight:bold;">
+          ⚠️ ¿Cambiar de Llave o Reiniciar App? Toca aquí
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Panel Principal Web3 -->
+  <!-- PANEL PRINCIPAL WEB3 -->
   <div id="app-card" style="display:none;">
-    
     <div class="stats-grid">
       <div class="stat-box">
         <div class="stat-label">Gas Tuxachain</div>
@@ -214,7 +224,6 @@
       <button class="tab-btn" onclick="switchTab('withdraw', event)">Retirar</button>
     </div>
 
-    <!-- Formularios de Transacción -->
     <div id="form-deposit" class="form-panel card">
       <div class="input-label"><span>Monto a depositar (Mín. 0.1)</span><span style="color:var(--brand-purple);">WNEAR</span></div>
       <div class="input-wrapper"><input type="number" id="input-deposit" placeholder="0.1" step="0.01"></div>
@@ -248,12 +257,11 @@
         <button class="btn-action btn-orange" style="padding: 10px; margin-top:0;" onclick="completarRetiro()">Reclamar WNEAR Liberado</button>
       </div>
     </div>
-
   </div>
 
   <div id="toast" class="toast"></div>
 
-  <!-- MODALES DE UI -->
+  <!-- MODALES -->
   <div id="modalSoporte" class="modal-overlay">
     <div class="modal-content">
       <button class="close-modal" onclick="cerrarModal('modalSoporte')">&times;</button>
@@ -288,7 +296,6 @@
 
 </div>
 
-<!-- LÓGICA WEB3 E INTERFAZ -->
 <script>
   const CONFIG = {
     RPC: "https://0x4e4542e3.rpc.aurora-cloud.dev",
@@ -316,7 +323,7 @@
   let provider, wallet, wnearContract, vaultContract;
   let rawBalances = { wnear: 0n, moro: 0n };
 
-  // 1. Verificación inmediata de estado local
+  // Comprobar estado inicial
   (function verificarEstadoInicial() {
     const ks = localStorage.getItem("caleta_ks");
     if (!ks) {
@@ -328,22 +335,19 @@
     }
   })();
 
-  // Botón de reseteo rápido para evitar bloqueos
   function forzarResetLocal() {
     if (confirm("¿Deseas borrar la clave encriptada guardada en este navegador y reiniciar la app?")) {
       localStorage.clear();
+      sessionStorage.clear();
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(registrations => {
-          for (let registration of registrations) {
-            registration.unregister();
-          }
+          for (let registration of registrations) { registration.unregister(); }
         });
       }
       window.location.reload(true);
     }
   }
 
-  // 2. Autenticación Local
   async function registrarBilletera() {
     const pk = document.getElementById("pk-input").value.trim();
     const pass1 = document.getElementById("pass-new").value;
@@ -354,7 +358,7 @@
     if (pass1 !== pass2) return showToast("❌ Las contraseñas no coinciden", true);
 
     try {
-      showToast("⏳ Encriptando billetera de forma segura...");
+      showToast("⏳ Encriptando billetera...");
       const tempWallet = pk.includes(" ") ? ethers.Wallet.fromPhrase(pk) : new ethers.Wallet(pk);
       const encrypted = await tempWallet.encrypt(pass1);
       localStorage.setItem("caleta_ks", encrypted);
@@ -376,14 +380,13 @@
     btnLogin.disabled = true;
     btnLogin.innerText = "Desencriptando...";
 
-    // Usamos setTimeout para no bloquear el hilo gráfico del móvil
     setTimeout(async () => {
       try {
         showToast("⏳ Conectando con Tuxachain...");
         provider = new ethers.JsonRpcProvider(CONFIG.RPC, CONFIG.CHAIN_ID);
         const localKeystore = localStorage.getItem("caleta_ks");
 
-        if (!localKeystore) throw new Error("No hay datos guardados");
+        if (!localKeystore) throw new Error("Sin datos");
 
         wallet = await ethers.Wallet.fromEncryptedJson(localKeystore, pass);
         wallet = wallet.connect(provider);
@@ -398,14 +401,13 @@
         showToast("✅ Billetera Conectada");
       } catch (e) {
         console.error(e);
-        showToast("❌ Contraseña incorrecta o datos corruptos", true);
+        showToast("❌ Contraseña incorrecta", true);
         btnLogin.disabled = false;
         btnLogin.innerText = "Desbloquear e Ingresar";
       }
     }, 100);
   }
 
-  // 3. Consultas Web3
   async function actualizarSaldos() {
     try {
       const tvlRaw = await wnearContract.balanceOf(CONFIG.VAULT);
@@ -430,16 +432,11 @@
         const rewards = await vaultContract.pendingRewards(wallet.address);
         document.getElementById("val-rewards").innerText = parseFloat(ethers.formatUnits(rewards, CONFIG.DEC.USDT)).toFixed(2);
       } catch (e) {}
-    } catch (e) { console.error("Error actualizando saldos:", e); }
+    } catch (e) { console.error(e); }
   }
 
-  // 4. Transacciones
-  function handleGasError(e) { showToast("❌ Transacción rechazada o falla en la red", true); }
+  function handleGasError(e) { showToast("❌ Error en la transacción", true); }
 
   async function ejecutarDeposito() {
     const input = document.getElementById("input-deposit").value;
-    if (!input || parseFloat(input) < 0.1) return showToast("⚠️ El depósito mínimo es 0.1 WNEAR", true);
-    
-    try {
-      const parsedAmount = ethers.parseUnits(input.toString(), CONFIG.DEC.WNEAR);
-      const allowance = await wnearContract.allo
+    if (!input || parseFloat(input) < 0.1) return 
