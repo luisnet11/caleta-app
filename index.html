@@ -36,17 +36,18 @@
       .app-logo { max-height: 46px; max-width: 180px; }
     }
 
-    header { display: flex; justify-content: space-between; align-items: center; padding: 1.2rem 1.5rem; background-color: var(--surface); border-bottom: 1px solid var(--border-color); margin-bottom: 1rem; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 1.2rem 1.5rem; background-color: var(--surface); border-bottom: 1px solid var(--border-color); }
     
     .logo { display: flex; align-items: center; }
     .app-logo { height: auto; max-height: 36px; max-width: 140px; object-fit: contain; transition: all 0.3s ease; }
     
-    .network-badge { display: flex; align-items: center; gap: 6px; background: var(--bg-dark); border: 1px solid var(--border-color); padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); }
+    .network-badge { display: flex; align-items: center; gap: 6px; background: var(--bg-dark); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); }
     .network-dot { width: 8px; height: 8px; background-color: var(--accent-orange); border-radius: 50%; transition: background-color 0.3s; }
     .network-dot.connected { background-color: var(--accent-green); }
 
-    .header-actions { display: flex; gap: 8px; }
-    .btn-outline { background-color: transparent; border: 1px solid var(--brand-purple); color: var(--brand-purple); padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .sub-header-bar { display: flex; justify-content: center; gap: 10px; padding: 0.8rem 1.5rem; background: var(--surface); border-bottom: 1px solid var(--border-color); margin-bottom: 1rem; flex-wrap: wrap; }
+    
+    .btn-outline { background-color: transparent; border: 1px solid var(--brand-purple); color: var(--brand-purple); padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
     .btn-outline:hover { background-color: rgba(139, 92, 246, 0.1); }
     #btn-install-app { display: none; }
 
@@ -99,8 +100,8 @@
 </head>
 <body>
 <div class="app-container">
+  <!-- Cabecera Principal Limpia -->
   <header>
-    <!-- Logo dinámico con fallback -->
     <div class="logo">
       <img src="./logo.png" alt="Caleta Logo" class="app-logo" onerror="this.style.display='none'; document.getElementById('logo-text-fallback').style.display='inline-block';">
       <span id="logo-text-fallback" style="display: none; font-size: 1.3rem; font-weight: 800; color: var(--brand-purple);">💰 Caleta</span>
@@ -110,12 +111,14 @@
       <div class="network-dot" id="net-dot"></div>
       <span id="net-name">Desconectado</span>
     </div>
-    <div class="header-actions">
-      <button id="btn-backup-key" class="btn-outline" style="display:none; border-color: var(--accent-orange); color: var(--accent-orange);" onclick="mostrarRespaldo()">🔑 Respaldar</button>
-      <button id="btn-install-app" class="btn-outline" onclick="instalarWebApp()">Instalar App</button>
-      <button class="btn-outline" onclick="abrirModal('modalSoporte')">Soporte</button>
-    </div>
   </header>
+
+  <!-- Sub-cabecera para Acciones (Desplegable tras Iniciar Sesión) -->
+  <div id="sub-header-bar" class="sub-header-bar" style="display:none;">
+    <button id="btn-backup-key" class="btn-outline" style="border-color: var(--accent-orange); color: var(--accent-orange);" onclick="abrirAuthRespaldo()">🔑 Respaldar</button>
+    <button id="btn-install-app" class="btn-outline" onclick="instalarWebApp()">Instalar App</button>
+    <button class="btn-outline" onclick="abrirModal('modalSoporte')">Soporte</button>
+  </div>
 
   <div class="card" id="auth-card">
     <h3 style="margin-top:0; color: var(--brand-purple); margin-bottom: 1rem;">Billetera Caleta</h3>
@@ -162,14 +165,30 @@
       <div class="balance-amount" id="val-moro">0.00</div>
       <div style="color: var(--accent-green); font-size: 0.8rem; font-weight: 700; margin-bottom: 16px;">1 MORO ≈ 1 WNEAR</div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; background: var(--bg-dark); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);">
-        <div>
-          <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700;">WNEAR Líquido</div>
-          <div id="val-wnear" style="font-size: 1rem; font-weight: 800; color: var(--text-main); margin-top: 2px;">0.00</div>
+      <!-- Tarjetas de Saldos Líquidos en Disposición Vertical -->
+      <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+        <!-- WNEAR Card -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-dark); padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border-color);">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 36px; height: 36px; background: var(--surface); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; border: 1px solid var(--border-color);">🟣</div>
+            <div style="text-align: left;">
+              <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">WNEAR</div>
+              <div style="font-size: 0.7rem; color: var(--text-muted);">Líquido</div>
+            </div>
+          </div>
+          <div id="val-wnear" style="font-size: 1.1rem; font-weight: 800; color: var(--text-main);">0.0000</div>
         </div>
-        <div>
-          <div style="font-size: 0.7rem; color: var(--accent-green); font-weight: 700;">USDT Líquido</div>
-          <div id="val-usdt" style="font-size: 1rem; font-weight: 800; color: var(--text-main); margin-top: 2px;">0.00</div>
+
+        <!-- USDT Card -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-dark); padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border-color);">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 36px; height: 36px; background: var(--surface); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; border: 1px solid var(--border-color);">💵</div>
+            <div style="text-align: left;">
+              <div style="font-size: 0.85rem; font-weight: 700; color: var(--accent-green);">USDT</div>
+              <div style="font-size: 0.7rem; color: var(--text-muted);">Líquido</div>
+            </div>
+          </div>
+          <div id="val-usdt" style="font-size: 1.1rem; font-weight: 800; color: var(--text-main);">0.00</div>
         </div>
       </div>
     </div>
@@ -245,13 +264,14 @@
     <div class="modal-content" style="text-align: center;">
       <button class="close-modal" onclick="cerrarModal('modalRecibir')">&times;</button>
       <h2 class="modal-title">📥 Recibir Tokens</h2>
-      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Usa esta dirección para recibir WNEAR, USDT o MORO en Tuxachain.</p>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Usa esta dirección para recibir WNEAR o USDT en Tuxachain.</p>
       <div style="margin: 15px 0;"><img id="qr-receive-img" src="" alt="QR Address" style="border-radius: 12px; border: 2px solid var(--border-color); width: 160px; height: 160px;"></div>
       <div class="input-wrapper"><p id="receive-address-text" style="font-size: 0.75rem; word-break: break-all; color: var(--brand-purple); font-weight: bold; background: var(--bg-dark); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);"></p></div>
       <button class="btn-action" onclick="copiarDireccionRecibir()">📋 Copiar Dirección</button>
     </div>
   </div>
 
+  <!-- Formulario Enviar (Exclusivamente WNEAR y USDT) -->
   <div id="modalEnviar" class="modal-overlay">
     <div class="modal-content">
       <button class="close-modal" onclick="cerrarModal('modalEnviar')">&times;</button>
@@ -261,7 +281,6 @@
         <select id="select-token-send">
           <option value="WNEAR">WNEAR</option>
           <option value="USDT">USDT</option>
-          <option value="MORO">MORO</option>
         </select>
       </div>
       <div class="input-label"><span>Dirección Destino (0x...)</span></div>
@@ -272,17 +291,32 @@
     </div>
   </div>
 
+  <!-- Modal de Respaldo Seguro (Doble Paso con Autenticación) -->
   <div id="modalBackup" class="modal-overlay">
     <div class="modal-content">
       <button class="close-modal" onclick="cerrarModal('modalBackup')">&times;</button>
-      <h2 class="modal-title" style="color: var(--accent-orange);">🔑 Respalda tu Clave</h2>
-      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Guarda esta clave en un lugar seguro. ¡Quien tenga esta clave tiene el control total de los fondos!</p>
-      <div class="input-wrapper"><input type="text" id="backup-pk-display" readonly style="font-size: 0.75rem; text-align: center; color: var(--brand-purple); font-weight: bold;"></div>
-      <button class="btn-action" onclick="copiarClavePrivada()">📋 Copiar Clave Privada</button>
+      
+      <div id="backup-step-auth">
+        <h2 class="modal-title">Seguridad</h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Ingresa tu contraseña maestra para revelar tu clave privada.</p>
+        <div class="input-wrapper">
+          <input type="password" id="input-backup-pass" placeholder="Contraseña maestra">
+        </div>
+        <button class="btn-action btn-orange" onclick="verificarPassYMostrarRespaldo()">Verificar y Revelar</button>
+      </div>
+
+      <div id="backup-step-reveal" style="display: none;">
+        <h2 class="modal-title" style="color: var(--accent-orange);">🔑 Clave Privada</h2>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Guarda esto en un lugar seguro. ¡Nunca la compartas con nadie!</p>
+        <div class="input-wrapper">
+          <input type="text" id="backup-pk-display" readonly style="font-size: 0.75rem; text-align: center; color: var(--brand-purple); font-weight: bold; background: var(--bg-dark);">
+        </div>
+        <button class="btn-action" onclick="copiarClavePrivada()">📋 Copiar Clave Privada</button>
+      </div>
     </div>
   </div>
   </div>
-             <script>
+  <script>
   const CONFIG = {
     RPC: "https://0x4e4542e3.rpc.aurora-cloud.dev", 
     CHAIN_ID: 1313161955,
@@ -336,7 +370,6 @@
     } catch (e) {}
   });
 
-  // Temporizador Semanal (Ej. Cosecha los Domingos 00:00 UTC)
   function iniciarConteoSemanal() {
     function actualizarTimer() {
       const ahora = new Date();
@@ -415,7 +448,7 @@
       document.getElementById("pass-login").value = pass1;
 
       await desbloquearBilletera();
-      if (onboardingMode === 'create') setTimeout(() => mostrarRespaldo(), 800);
+      if (onboardingMode === 'create') setTimeout(() => abrirAuthRespaldo(), 800);
     } catch (e) {
       console.error(e); showToast("❌ Error procesando clave", true);
     }
@@ -438,7 +471,7 @@
         
         document.getElementById("auth-card").style.display = "none";
         document.getElementById("app-card").style.display = "block";
-        document.getElementById("btn-backup-key").style.display = "block";
+        document.getElementById("sub-header-bar").style.display = "flex";
         document.getElementById("net-name").innerText = "Tuxachain (EVM)";
         document.getElementById("net-dot").classList.add("connected");
         
@@ -570,7 +603,6 @@
       let tAddr, dec;
       if (type === 'WNEAR') { tAddr = CONFIG.WNEAR; dec = CONFIG.DEC.WNEAR; }
       else if (type === 'USDT') { tAddr = CONFIG.USDT; dec = CONFIG.DEC.USDT; }
-      else if (type === 'MORO') { tAddr = CONFIG.VAULT; dec = CONFIG.DEC.MORO; }
 
       const tc = new ethers.Contract(tAddr, ABI_ERC20, wallet);
       await (await tc.transfer(to, ethers.parseUnits(amt.toString(), dec))).wait();
@@ -583,17 +615,37 @@
     } catch (e) { showToast("❌ Error en transferencia", true); }
   }
 
-  function mostrarRespaldo() {
-    if (!wallet || !wallet.privateKey) return showToast("⚠️ Desbloquea la billetera", true);
-    document.getElementById("backup-pk-display").value = wallet.privateKey;
+  // Funciones de Respaldo con Validación de Contraseña
+  function abrirAuthRespaldo() {
+    document.getElementById("backup-step-auth").style.display = "block";
+    document.getElementById("backup-step-reveal").style.display = "none";
+    document.getElementById("input-backup-pass").value = "";
     abrirModal("modalBackup");
+  }
+
+  async function verificarPassYMostrarRespaldo() {
+    const pass = document.getElementById("input-backup-pass").value;
+    if (!pass) return showToast("⚠️ Ingresa tu contraseña", true);
+    
+    showToast("⏳ Verificando credenciales...");
+    try {
+      const ks = localStorage.getItem("caleta_ks");
+      await ethers.Wallet.fromEncryptedJson(ks, pass);
+      
+      document.getElementById("backup-pk-display").value = wallet.privateKey;
+      document.getElementById("backup-step-auth").style.display = "none";
+      document.getElementById("backup-step-reveal").style.display = "block";
+      showToast("✅ Acceso autorizado");
+    } catch (e) {
+      showToast("❌ Contraseña incorrecta", true);
+    }
   }
 
   function copiarClavePrivada() {
     const el = document.getElementById("backup-pk-display");
     el.select(); el.setSelectionRange(0, 99999);
     navigator.clipboard.writeText(el.value);
-    showToast("📋 ¡Clave copiada!");
+    showToast("📋 ¡Clave copiada con éxito!");
   }
 
   function switchTab(tab, evt) { 
