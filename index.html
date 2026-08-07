@@ -193,8 +193,10 @@
       <button class="btn-action" style="background: var(--surface); border: 1px solid var(--border-color); flex: 1; padding: 12px;" onclick="abrirModalRecibir()">📥 Recibir</button>
       <button class="btn-action" style="background: var(--surface); border: 1px solid var(--border-color); flex: 1; padding: 12px;" onclick="abrirModal('modalEnviar')">📤 Enviar</button>
     </div>
+    
+    <!-- Botón Corregido (Se eliminó Binance) -->
     <div style="margin: 0 1rem 20px 1rem;">
-      <button class="btn-action" style="background: var(--surface); border: 1px solid var(--brand-purple); flex: 1; padding: 12px; color: var(--text-main);" onclick="initCexDeposit()">🏦 Recibir desde Binance / CEX</button>
+      <button class="btn-action" style="background: var(--surface); border: 1px solid var(--brand-purple); flex: 1; padding: 12px; color: var(--text-main);" onclick="initCexDeposit()">🏦 Recibir desde CEX / Exchange</button>
     </div>
 
     <div class="tab-group">
@@ -267,11 +269,12 @@
     </div>
   </div>
 
+  <!-- Modal CEX Corregido (Se eliminó Binance) -->
   <div id="cexModal" class="modal-overlay">
     <div class="modal-content" style="text-align: center;">
       <button class="close-modal" onclick="cerrarModal('cexModal')">&times;</button>
       <h2 class="modal-title" style="color: var(--brand-purple);">🏦 Depositar NEAR desde CEX</h2>
-      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Envía NEAR desde Binance u otro exchange directamente a esta dirección generada por Aurora Cloud.</p>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Envía NEAR desde tu exchange directamente a esta dirección generada por Aurora Cloud.</p>
       
       <div id="loader-forwarder" style="margin: 20px 0; color: var(--brand-purple); display: none; font-weight: bold;">
         ⏳ Generando dirección única...
@@ -328,8 +331,14 @@
       </div>
     </div>
   </div>
-        </div>
-<script>
+  </div>
+        <script>
+  // --- CREDENCIALES DE APIS (Corregido y Estructurado) ---
+  const APP_CREDENTIALS = {
+    gasSponsorship: "edede8c3dfd6d20672e74cbff9b6dcff", // Reservado para futura lectura de gas patrocinado
+    auroraForwarder: "1a1ba30088b3605d563363845e99d56f" // Activa la función de forwarder
+  };
+
   const CONFIG = {
     RPC: "https://0x4e4542e3.rpc.aurora-cloud.dev", 
     CHAIN_ID: 1313161955,
@@ -604,9 +613,9 @@
     showToast("📋 ¡Dirección copiada!");
   }
 
-  const AURORA_API_KEY = "edede8c3dfd6d20672e74cbff9b6dcff"; 
   const AURORA_API_URL = "https://api.auroracloud.dev/v1/forwarder"; 
 
+  // --- FUNCIÓN DE FORWARDER ACTUALIZADA ---
   async function initCexDeposit() {
     if (!wallet || !wallet.address) {
       return showToast("⚠️ Billetera no conectada", true);
@@ -625,7 +634,8 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${AURORA_API_KEY}`
+          // Se utiliza la clave especifica para el Forwarder
+          'Authorization': `Bearer ${APP_CREDENTIALS.auroraForwarder}`
         },
         body: JSON.stringify({ evm_address: wallet.address })
       });
