@@ -332,7 +332,7 @@
     </div>
   </div>
   </div>
-        <script>
+          <script>
   // --- CREDENCIALES DE APIS (Corregido y Estructurado) ---
   const APP_CREDENTIALS = {
     gasSponsorship: "edede8c3dfd6d20672e74cbff9b6dcff", // Reservado para futura lectura de gas patrocinado
@@ -615,7 +615,7 @@
 
   const AURORA_API_URL = "https://api.auroracloud.dev/v1/forwarder"; 
 
-  // --- FUNCIÓN DE FORWARDER ACTUALIZADA ---
+  // --- FUNCIÓN DE FORWARDER CORREGIDA ---
   async function initCexDeposit() {
     if (!wallet || !wallet.address) {
       return showToast("⚠️ Billetera no conectada", true);
@@ -624,43 +624,73 @@
     const modal = document.getElementById("cexModal");
     const loader = document.getElementById("loader-forwarder");
     const infoContainer = document.getElementById("forwarder-info");
-    
+
     modal.style.display = "flex";
     infoContainer.style.display = "none";
     loader.style.display = "block";
+    loader.innerHTML = "⏳ Generando dirección única...";
 
     try {
+      // Timeout de 10 segundos
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+
       const response = await fetch(AURORA_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Se utiliza la clave especifica para el Forwarder
-          'Authorization': `Bearer ${APP_CREDENTIALS.auroraForwarder}`
+          'x-api-key': APP_CREDENTIALS.auroraForwarder   // ✅ Header correcto
         },
-        body: JSON.stringify({ evm_address: wallet.address })
+        body: JSON.stringify({ evm_address: wallet.address }),
+        signal: controller.signal
       });
 
-      if (!response.ok) throw new Error(`Error en API: ${response.status}`);
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        let errorMsg = `Error HTTP ${response.status}`;
+        try {
+          const errData = await response.json();
+          errorMsg += `: ${errData.message || JSON.stringify(errData)}`;
+        } catch (_) {}
+        throw new Error(errorMsg);
+      }
 
       const data = await response.json();
-      userDepositAddress = data.deposit_address; 
+      if (!data.deposit_address) {
+        throw new Error("La respuesta no contiene 'deposit_address'");
+      }
 
+      userDepositAddress = data.deposit_address;
       document.getElementById("deposit-address-input").value = userDepositAddress;
+
       loader.style.display = "none";
       infoContainer.style.display = "block";
 
+      // Generar código QR
       const qrContainer = document.getElementById("qr-forwarder-container");
       qrContainer.innerHTML = ""; 
       new QRCode(qrContainer, {
         text: userDepositAddress,
-        width: 150, height: 150,
-        colorDark : "#000000", colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.M
+        width: 150,
+        height: 150,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
       });
 
     } catch (error) {
       console.error("Error generando dirección Forwarder:", error);
-      loader.innerHTML = "❌ Error de conexión con Aurora Cloud.";
+      loader.innerHTML = `❌ Error: ${error.message || "Conexión fallida"}`;
+      // Ocultar tras 5 segundos si falla
+      setTimeout(() => {
+        if (loader.style.display !== "none") {
+          loader.style.display = "none";
+          infoContainer.style.display = "none";
+          cerrarModal("cexModal");
+          showToast("No se pudo generar la dirección. Intenta más tarde.", true);
+        }
+      }, 5000);
     }
   }
 
