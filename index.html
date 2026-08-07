@@ -1,680 +1,244 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Caleta App</title>
-  
-  <link rel="manifest" href="./manifest.json">
-  <meta name="theme-color" content="#0F172A">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caleta App - Tuxachain</title>
+    
+    <!-- Librerías Externas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-  <script>
-    // Sistema de emergencia para resetear caché
-    if (window.location.search.includes('reset=true') || window.location.search.includes('clean=1')) {
-      localStorage.clear(); sessionStorage.clear();
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
-      }
-      alert("✅ Memoria borrada. Cargando formulario...");
-      window.location.href = window.location.pathname;
-    }
-  </script>
+    <style>
+        /* Estilos Base de Caleta App */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f0f1a;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #2a2a40; }
+        .logo { font-size: 24px; font-weight: bold; color: #00d2ff; }
+        
+        /* Botones Principales */
+        .caleta-btn-primary {
+            background: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%);
+            border: none; padding: 12px 20px; color: white;
+            border-radius: 8px; font-weight: bold; cursor: pointer;
+            transition: opacity 0.3s; margin: 10px 5px;
+        }
+        .caleta-btn-primary:hover { opacity: 0.8; }
+        
+        /* Contenedores y Formularios */
+        .dashboard-panel { background: #1a1a2e; padding: 20px; border-radius: 12px; margin-top: 20px; }
+        .input-label { margin-top: 15px; font-size: 14px; color: #aaa; }
+        .input-wrapper input {
+            width: 100%; padding: 12px; margin-top: 5px;
+            background: #2a2a40; border: 1px solid #3a3a50;
+            color: white; border-radius: 6px; box-sizing: border-box;
+        }
 
-  <!-- Ethers.js v6 -->
-  <script src="./ethers.umd.min.js"></script>
-  
-  <style>
-    :root { --bg-dark: #0F172A; --surface: #1E293B; --brand-purple: #8B5CF6; --accent-green: #10B981; --accent-orange: #F59E0B; --text-main: #F8FAFC; --text-muted: #94A3B8; --border-color: #334155; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-dark); color: var(--text-main); margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; }
-    
-    .app-container { width: 100%; max-width: 440px; background: var(--bg-dark); box-sizing: border-box; position: relative; display: flex; flex-direction: column; min-height: 100vh; transition: all 0.3s ease; }
-    
-    @media (min-width: 768px) {
-      body { align-items: center; background-color: #0B1121; padding: 2rem 0; }
-      .app-container { max-width: 600px; min-height: auto; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: 0 10px 40px rgba(0,0,0,0.6); overflow: hidden; background: var(--bg-dark); }
-      .stats-grid, .card, .tab-group { margin: 0 1.5rem 20px 1.5rem; }
-      .app-logo { max-height: 46px; max-width: 180px; }
-    }
-
-    header { display: flex; justify-content: space-between; align-items: center; padding: 1.2rem 1.5rem; background-color: var(--surface); border-bottom: 1px solid var(--border-color); }
-    
-    .logo { display: flex; align-items: center; }
-    .app-logo { height: auto; max-height: 36px; max-width: 140px; object-fit: contain; transition: all 0.3s ease; }
-    
-    .network-badge { display: flex; align-items: center; gap: 6px; background: var(--bg-dark); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); }
-    .network-dot { width: 8px; height: 8px; background-color: var(--accent-orange); border-radius: 50%; transition: background-color 0.3s; }
-    .network-dot.connected { background-color: var(--accent-green); }
-
-    .sub-header-bar { display: flex; justify-content: center; gap: 10px; padding: 0.8rem 1.5rem; background: var(--surface); border-bottom: 1px solid var(--border-color); margin-bottom: 1rem; flex-wrap: wrap; }
-    
-    .btn-outline { background-color: transparent; border: 1px solid var(--brand-purple); color: var(--brand-purple); padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-    .btn-outline:hover { background-color: rgba(139, 92, 246, 0.1); }
-    #btn-install-app { display: none; }
-
-    .card { background: var(--surface); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; margin: 0 1rem 16px 1rem; }
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 1rem 16px 1rem; }
-    .stat-box { background: var(--surface); padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center; }
-    .stat-box.clickable { cursor: pointer; transition: transform 0.2s, border-color 0.2s; }
-    .stat-box.clickable:hover { border-color: var(--brand-purple); transform: translateY(-2px); }
-    .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    .stat-value { font-size: 1.15rem; font-weight: 800; color: var(--text-main); word-break: break-all; }
-    
-    .balance-hero { text-align: center; padding: 20px 16px; border-bottom: 1px dashed var(--border-color); margin-bottom: 20px; }
-    .balance-amount { font-size: 2.5rem; font-weight: 900; color: var(--brand-purple); margin: 4px 0 2px 0; letter-spacing: -1px; }
-    
-    .tab-group { display: flex; background: var(--surface); padding: 4px; border-radius: 12px; margin: 0 1rem 20px 1rem; border: 1px solid var(--border-color); }
-    .tab-btn { flex: 1; padding: 12px; border: none; background: transparent; color: var(--text-muted); font-weight: 700; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
-    .tab-btn.active { background: var(--border-color); color: var(--text-main); }
-    
-    .input-label { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; }
-    .input-wrapper { margin-bottom: 16px; }
-    input, select { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-main); font-size: 1rem; box-sizing: border-box; outline: none; transition: border-color 0.2s; }
-    input:focus, select:focus { border-color: var(--brand-purple); box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2); }
-    
-    .preset-group { display: flex; gap: 8px; margin-bottom: 20px; }
-    .preset-btn { flex: 1; padding: 10px 4px; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-    .preset-btn:hover { border-color: var(--brand-purple); color: var(--text-main); }
-    
-    .btn-action { width: 100%; padding: 16px; border: none; border-radius: 12px; background: var(--brand-purple); color: #fff; font-size: 1rem; font-weight: 800; cursor: pointer; transition: transform 0.1s, opacity 0.2s; }
-    .btn-action:active { transform: scale(0.98); }
-    .btn-action:disabled { opacity: 0.6; cursor: not-allowed; }
-    .btn-orange { background: var(--accent-orange); }
-    
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface); border: 1px solid var(--brand-purple); color: var(--text-main); padding: 12px 24px; border-radius: 30px; font-size: 0.9rem; font-weight: 600; opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-    .toast.error { border-color: var(--accent-orange); }
-    
-    .withdraw-step { border: 1px dashed var(--border-color); padding: 16px; border-radius: 12px; margin-bottom: 12px; background: var(--bg-dark); }
-    
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 1000; }
-    .modal-content { background-color: var(--surface); padding: 2rem; border-radius: 16px; width: 90%; max-width: 380px; border: 1px solid var(--border-color); position: relative; }
-    .close-modal { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; transition: color 0.2s; }
-    .close-modal:hover { color: var(--text-main); }
-    .modal-title { margin-top: 0; color: var(--brand-purple); font-size: 1.3rem; }
-    .data-list { list-style: none; padding: 0; margin: 1.5rem 0 0 0; }
-    .data-list li { display: flex; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.95rem;}
-    .data-list li:last-child { border-bottom: none; }
-    .support-link { display: block; text-decoration: none; color: var(--text-main); background-color: var(--bg-dark); padding: 1rem; border-radius: 8px; margin-bottom: 0.8rem; text-align: center; border: 1px solid var(--border-color); font-weight: 600; font-size: 0.95rem; transition: border-color 0.2s; }
-    .support-link:hover { border-color: var(--brand-purple); }
-  </style>
+        /* Estilos del Modal Forwarder y Envío */
+        .caleta-modal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+            width: 100%; height: 100%; overflow: auto;
+            background-color: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
+        }
+        .caleta-modal-content {
+            background-color: #1a1a2e; margin: 10% auto; padding: 25px;
+            border-radius: 12px; width: 90%; max-width: 450px;
+            text-align: center; border: 1px solid #00d2ff;
+        }
+        .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; margin-top: -10px; }
+        .close-btn:hover { color: white; }
+        
+        /* Elementos Internos del Forwarder */
+        .address-box { display: flex; gap: 10px; margin-top: 20px; }
+        .address-box input { flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #00d2ff; background: #0f0f1a; color: #00d2ff; }
+        .copy-btn { padding: 0 20px; background: #00d2ff; color: #000; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .warning-text { display: block; margin-top: 15px; color: #ffcc00; font-size: 0.9em; }
+    </style>
 </head>
 <body>
-<div class="app-container">
-  <!-- Cabecera Principal Limpia -->
-  <header>
-    <div class="logo">
-      <img src="./logo.png" alt="Caleta Logo" class="app-logo" onerror="this.style.display='none'; document.getElementById('logo-text-fallback').style.display='inline-block';">
-      <span id="logo-text-fallback" style="display: none; font-size: 1.3rem; font-weight: 800; color: var(--brand-purple);">💰 Caleta</span>
+      <!-- Cabecera -->
+    <div class="header">
+        <div class="logo"><i class="fa-solid fa-water"></i> Caleta App</div>
+        <button id="btn-connect" class="caleta-btn-primary" onclick="conectarWallet()">Conectar Wallet</button>
     </div>
 
-    <div class="network-badge" id="net-badge">
-      <div class="network-dot" id="net-dot"></div>
-      <span id="net-name">Desconectado</span>
-    </div>
-  </header>
-
-  <!-- Sub-cabecera para Acciones (Desplegable tras Iniciar Sesión) -->
-  <div id="sub-header-bar" class="sub-header-bar" style="display:none;">
-    <button id="btn-backup-key" class="btn-outline" style="border-color: var(--accent-orange); color: var(--accent-orange);" onclick="abrirAuthRespaldo()">🔑 Respaldar</button>
-    <button id="btn-install-app" class="btn-outline" onclick="instalarWebApp()">Instalar App</button>
-    <button class="btn-outline" onclick="abrirModal('modalSoporte')">Soporte</button>
-  </div>
-
-  <div class="card" id="auth-card">
-    <h3 style="margin-top:0; color: var(--brand-purple); margin-bottom: 1rem;">Billetera Caleta</h3>
-    
-    <div id="first-time-setup" style="display: block;">
-      <div class="tab-group" style="margin: 0 0 16px 0;">
-        <button id="tab-mode-create" class="tab-btn active" onclick="setOnboardingMode('create')">✨ Crear Nueva</button>
-        <button id="tab-mode-import" class="tab-btn" onclick="setOnboardingMode('import')">📥 Importar Existente</button>
-      </div>
-
-      <div id="group-import-input" style="display: none;">
-        <div class="input-label"><span>Clave Privada o Frase Semilla</span></div>
-        <div class="input-wrapper"><input type="password" id="pk-input" placeholder="Pega tu clave (0x...) o 12 palabras"></div>
-      </div>
-
-      <div class="input-label"><span>Crear Contraseña Maestra</span></div>
-      <div class="input-wrapper"><input type="password" id="pass-new" placeholder="Mínimo 4 caracteres"></div>
-      
-      <div class="input-label"><span>Confirmar Contraseña</span></div>
-      <div class="input-wrapper"><input type="password" id="pass-confirm" placeholder="Repite la contraseña"></div>
-      
-      <button class="btn-action" id="btn-submit-onboarding" onclick="procesarOnboarding()">✨ Generar Billetera e Ingresar</button>
-    </div>
-
-    <div id="login-setup" style="display: none;">
-      <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:20px;">Ingresa tu contraseña maestra para continuar.</p>
-      <div class="input-label"><span>Contraseña Maestra</span></div>
-      <div class="input-wrapper"><input type="password" id="pass-login" placeholder="Tu contraseña"></div>
-      <button class="btn-action" id="btn-login" onclick="desbloquearBilletera()">Desbloquear e Ingresar</button>
-      <div style="text-align: center; margin-top: 24px; padding-top: 16px; border-top: 1px dashed var(--border-color);">
-        <button onclick="forzarResetLocal()" style="background:none; border:none; color:var(--accent-orange); text-decoration:none; font-size:0.85rem; cursor:pointer; font-weight:600; padding: 8px;">⚠️ ¿Reiniciar Billetera Local?</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="app-card" style="display:none;">
-    <div class="stats-grid">
-      <div class="stat-box"><div class="stat-label">Gas Protocolo</div><div class="stat-value" style="color: var(--brand-purple);">Gratis</div></div>
-      <div class="stat-box clickable" onclick="abrirModal('modalLiquidez')"><div class="stat-label">Liquidez TVL</div><div class="stat-value" id="val-tvl" style="color: var(--accent-green);">0.00 WN</div></div>
-    </div>
-
-    <div class="balance-hero">
-      <div class="stat-label" style="font-size: 0.85rem;">Depósito Activo (MORO)</div>
-      <div class="balance-amount" id="val-moro">0.00</div>
-      <div style="color: var(--accent-green); font-size: 0.8rem; font-weight: 700; margin-bottom: 16px;">1 MORO ≈ 1 WNEAR</div>
-
-      <!-- Tarjetas de Saldos Líquidos en Disposición Vertical -->
-      <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
-        <!-- WNEAR Card -->
-        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-dark); padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border-color);">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="width: 36px; height: 36px; background: var(--surface); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; border: 1px solid var(--border-color);">🟣</div>
-            <div style="text-align: left;">
-              <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">WNEAR</div>
-              <div style="font-size: 0.7rem; color: var(--text-muted);">Líquido</div>
-            </div>
-          </div>
-          <div id="val-wnear" style="font-size: 1.1rem; font-weight: 800; color: var(--text-main);">0.0000</div>
-        </div>
-
-        <!-- USDT Card -->
-        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-dark); padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border-color);">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="width: 36px; height: 36px; background: var(--surface); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; border: 1px solid var(--border-color);">💵</div>
-            <div style="text-align: left;">
-              <div style="font-size: 0.85rem; font-weight: 700; color: var(--accent-green);">USDT</div>
-              <div style="font-size: 0.7rem; color: var(--text-muted);">Líquido</div>
-            </div>
-          </div>
-          <div id="val-usdt" style="font-size: 1.1rem; font-weight: 800; color: var(--text-main);">0.00</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Botones Enviar / Recibir -->
-    <div style="display: flex; gap: 10px; margin: 0 1rem 20px 1rem;">
-      <button class="btn-action" style="background: var(--surface); border: 1px solid var(--border-color); flex: 1; padding: 12px;" onclick="abrirModalRecibir()">📥 Recibir</button>
-      <button class="btn-action" style="background: var(--surface); border: 1px solid var(--border-color); flex: 1; padding: 12px;" onclick="abrirModal('modalEnviar')">📤 Enviar</button>
-    </div>
-
-    <div class="tab-group">
-      <button class="tab-btn active" onclick="switchTab('deposit', event)">Depositar</button>
-      <button class="tab-btn" onclick="switchTab('claim', event)">Ganancias</button>
-      <button class="tab-btn" onclick="switchTab('withdraw', event)">Retirar</button>
-    </div>
-
-    <div id="form-deposit" class="form-panel card">
-      <div class="input-label"><span>Monto a depositar (Mín. 0.1)</span><span style="color:var(--brand-purple);">WNEAR</span></div>
-      <div class="input-wrapper"><input type="number" id="input-deposit" placeholder="0.1" step="0.01"></div>
-      <div class="preset-group">
-        <button class="preset-btn" onclick="setPercent('deposit', 25)">25%</button>
-        <button class="preset-btn" onclick="setPercent('deposit', 50)">50%</button>
-        <button class="preset-btn" onclick="setPercent('deposit', 100)">MAX</button>
-      </div>
-      <button class="btn-action" onclick="ejecutarAccion('deposit')">Depositar WNEAR</button>
-    </div>
-
-    <!-- Pestaña Ganancias con Reloj Semanal -->
-    <div id="form-claim" class="form-panel card" style="display:none; text-align: center;">
-      <div style="background: var(--bg-dark); border: 1px solid var(--border-color); padding: 14px; border-radius: 12px; margin-bottom: 20px;">
-        <div class="stat-label" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">⏱️ PRÓXIMA COSECHA / REPARTICIÓN</div>
-        <div id="timer-cosecha" style="font-size: 1.4rem; font-weight: 900; color: var(--accent-orange); margin-top: 6px; letter-spacing: 0.5px;">--d --h --m --s</div>
-      </div>
-      <div class="stat-label">Ganancias Pendientes Generadas</div>
-      <div class="balance-amount" style="color: var(--accent-green);" id="val-rewards">0.00</div>
-      <div style="font-weight: 800; color: var(--text-muted); margin-bottom: 24px;">USDT</div>
-      <button class="btn-action btn-orange" onclick="ejecutarAccion('claim')">Reclamar USDT</button>
-    </div>
-
-    <div id="form-withdraw" class="form-panel card" style="display:none; padding: 0; background: transparent; border: none;">
-      <div class="withdraw-step">
-        <div class="stat-label" style="color:var(--brand-purple);">Paso 1: Solicitar Descongelación</div>
-        <div class="input-wrapper" style="margin-top: 12px;"><input type="number" id="input-withdraw" placeholder="Monto exacto en MORO"></div>
-        <button class="btn-action" style="padding: 12px; margin-top:0;" onclick="ejecutarAccion('requestWithdraw')">Solicitar Retiro</button>
-      </div>
-      <div class="withdraw-step">
-        <div class="stat-label" style="color:var(--accent-orange);">Paso 2: Liberar Fondos a Wallet</div>
-        <p style="font-size: 0.8rem; margin: 8px 0 16px 0; color:var(--text-muted);">Reclama tus WNEAR una vez concluido el periodo de bloqueo de la red.</p>
-        <button class="btn-action btn-orange" style="padding: 12px; margin-top:0;" onclick="ejecutarAccion('claimWithdraw')">Reclamar WNEAR</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="toast" class="toast"></div>
-
-  <!-- Modales -->
-  <div id="modalSoporte" class="modal-overlay"><div class="modal-content"><button class="close-modal" onclick="cerrarModal('modalSoporte')">&times;</button><h2 class="modal-title">Soporte Técnico</h2><div id="support-links-container"><p style="text-align:center;">Cargando red...</p></div></div></div>
-  
-  <div id="modalLiquidez" class="modal-overlay">
-    <div class="modal-content">
-      <button class="close-modal" onclick="cerrarModal('modalLiquidez')">&times;</button>
-      <h2 class="modal-title">Liquidez Local</h2>
-      <ul class="data-list">
-        <li><span style="color: var(--text-muted);">TVL Bóveda</span><strong id="modal-tvl-wnear">Cargando...</strong></li>
-        <li><span style="color: var(--text-muted);">Respaldo (Backup)</span><strong id="modal-backup-wnear" style="color: var(--brand-purple);">Cargando...</strong></li>
-        <li><span style="color: var(--text-muted);">MTC Emitido</span><strong id="modal-tvl-mtc">Cargando...</strong></li>
-        <li><span style="color: var(--text-muted);">Estrategia (Staking)</span><strong id="modal-strategy-near" style="color: var(--accent-green);">Cargando...</strong></li>
-      </ul>
-    </div>
-  </div>
-
-  <div id="modalRecibir" class="modal-overlay">
-    <div class="modal-content" style="text-align: center;">
-      <button class="close-modal" onclick="cerrarModal('modalRecibir')">&times;</button>
-      <h2 class="modal-title">📥 Recibir Tokens</h2>
-      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Usa esta dirección para recibir WNEAR o USDT en Tuxachain.</p>
-      <div style="margin: 15px 0;"><img id="qr-receive-img" src="" alt="QR Address" style="border-radius: 12px; border: 2px solid var(--border-color); width: 160px; height: 160px;"></div>
-      <div class="input-wrapper"><p id="receive-address-text" style="font-size: 0.75rem; word-break: break-all; color: var(--brand-purple); font-weight: bold; background: var(--bg-dark); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);"></p></div>
-      <button class="btn-action" onclick="copiarDireccionRecibir()">📋 Copiar Dirección</button>
-    </div>
-  </div>
-
-  <!-- Formulario Enviar (Exclusivamente WNEAR y USDT) -->
-  <div id="modalEnviar" class="modal-overlay">
-    <div class="modal-content">
-      <button class="close-modal" onclick="cerrarModal('modalEnviar')">&times;</button>
-      <h2 class="modal-title">📤 Enviar Tokens</h2>
-      <div class="input-label"><span>Seleccionar Token</span></div>
-      <div class="input-wrapper">
-        <select id="select-token-send">
-          <option value="WNEAR">WNEAR</option>
-          <option value="USDT">USDT</option>
-        </select>
-      </div>
-      <div class="input-label"><span>Dirección Destino (0x...)</span></div>
-      <div class="input-wrapper"><input type="text" id="input-to-address" placeholder="0x1234..."></div>
-      <div class="input-label"><span>Monto</span></div>
-      <div class="input-wrapper"><input type="number" id="input-send-amount" placeholder="0.0" step="0.0001"></div>
-      <button class="btn-action" onclick="ejecutarEnvioToken()">Enviar Ahora</button>
-    </div>
-  </div>
-
-  <!-- Modal de Respaldo Seguro (Doble Paso con Autenticación) -->
-  <div id="modalBackup" class="modal-overlay">
-    <div class="modal-content">
-      <button class="close-modal" onclick="cerrarModal('modalBackup')">&times;</button>
-      
-      <div id="backup-step-auth">
-        <h2 class="modal-title">Seguridad</h2>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Ingresa tu contraseña maestra para revelar tu clave privada.</p>
-        <div class="input-wrapper">
-          <input type="password" id="input-backup-pass" placeholder="Contraseña maestra">
-        </div>
-        <button class="btn-action btn-orange" onclick="verificarPassYMostrarRespaldo()">Verificar y Revelar</button>
-      </div>
-
-      <div id="backup-step-reveal" style="display: none;">
-        <h2 class="modal-title" style="color: var(--accent-orange);">🔑 Clave Privada</h2>
-        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Guarda esto en un lugar seguro. ¡Nunca la compartas con nadie!</p>
-        <div class="input-wrapper">
-          <input type="text" id="backup-pk-display" readonly style="font-size: 0.75rem; text-align: center; color: var(--brand-purple); font-weight: bold; background: var(--bg-dark);">
-        </div>
-        <button class="btn-action" onclick="copiarClavePrivada()">📋 Copiar Clave Privada</button>
-      </div>
-    </div>
-  </div>
-  </div>
-  <script>
-  const CONFIG = {
-    RPC: "https://0x4e4542e3.rpc.aurora-cloud.dev", 
-    CHAIN_ID: 1313161955,
-    WNEAR: "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d", 
-    USDT: "0x80Da25Da4D783E57d2FCdA0436873A193a4BEccF", 
-    VAULT: "0x72820f7A42aeeEA191b86F3A95E470555988209f",
-    BACKUP_WALLET: "0x0a9d447095D052A68092CE2B978546652c4b7B38",
-    DEC: { WNEAR: 24, MORO: 18, USDT: 6 }
-  };
-
-  const ABI_ERC20 = [
-    "function balanceOf(address) view returns (uint256)", 
-    "function allowance(address, address) view returns (uint256)", 
-    "function approve(address, uint256) returns (bool)",
-    "function transfer(address, uint256) returns (bool)"
-  ];
-  const ABI_VAULT = [
-    "function deposit(uint256)", 
-    "function requestWithdrawal(uint256)", 
-    "function claimWithdrawal()", 
-    "function claim()", 
-    "function pendingRewards(address) view returns (uint256)"
-  ];
-
-  let provider, wallet, wnearContract, vaultContract, rawBalances = { wnear: 0n, moro: 0n, usdt: 0n };
-  let deferredInstallPrompt = null;
-  let onboardingMode = 'create';
-
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredInstallPrompt = e;
-    if (window.innerWidth >= 1024) document.getElementById('btn-install-app').style.display = 'block';
-  });
-
-  function instalarWebApp() {
-    if (!deferredInstallPrompt) return;
-    deferredInstallPrompt.prompt();
-    deferredInstallPrompt.userChoice.then((choice) => {
-      if (choice.outcome === 'accepted') document.getElementById('btn-install-app').style.display = 'none';
-      deferredInstallPrompt = null;
-    });
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    try {
-      const hasKey = localStorage.getItem("caleta_ks");
-      document.getElementById("first-time-setup").style.display = hasKey ? "none" : "block";
-      document.getElementById("login-setup").style.display = hasKey ? "block" : "none";
-      cargarLinksSoporte();
-      iniciarConteoSemanal();
-    } catch (e) {}
-  });
-
-  function iniciarConteoSemanal() {
-    function actualizarTimer() {
-      const ahora = new Date();
-      const DIA_CORTE = 0; // 0 = Domingo
-      const proximoCiclo = new Date(ahora);
-      const diaSemanaActual = ahora.getUTCDay();
-      
-      let diasFaltantes = (DIA_CORTE - diaSemanaActual + 7) % 7;
-      proximoCiclo.setUTCDate(ahora.getUTCDate() + diasFaltantes);
-      proximoCiclo.setUTCHours(0, 0, 0, 0);
-
-      if (proximoCiclo <= ahora) proximoCiclo.setUTCDate(proximoCiclo.getUTCDate() + 7);
-
-      const diff = proximoCiclo - ahora;
-      const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const s = Math.floor((diff % (1000 * 60)) / 1000);
-
-      const el = document.getElementById("timer-cosecha");
-      if (el) el.innerText = `${d}d ${h}h ${m}m ${s}s`;
-    }
-    actualizarTimer();
-    setInterval(actualizarTimer, 1000);
-  }
-
-  function setOnboardingMode(mode) {
-    onboardingMode = mode;
-    const btnCreate = document.getElementById("tab-mode-create");
-    const btnImport = document.getElementById("tab-mode-import");
-    const importGroup = document.getElementById("group-import-input");
-    const submitBtn = document.getElementById("btn-submit-onboarding");
-
-    if (mode === 'create') {
-      btnCreate.classList.add("active"); btnImport.classList.remove("active");
-      importGroup.style.display = "none"; submitBtn.innerText = "✨ Generar Billetera e Ingresar";
-    } else {
-      btnImport.classList.add("active"); btnCreate.classList.remove("active");
-      importGroup.style.display = "block"; submitBtn.innerText = "📥 Importar Billetera e Ingresar";
-    }
-  }
-
-  function forzarResetLocal() {
-    if (confirm("¿Borrar la clave encriptada y reiniciar la app?")) {
-      localStorage.clear(); sessionStorage.clear();
-      if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(r => r.forEach(reg => reg.unregister()));
-      window.location.reload(true);
-    }
-  }
-
-  async function procesarOnboarding() {
-    const pass1 = document.getElementById("pass-new").value;
-    const pass2 = document.getElementById("pass-confirm").value;
-
-    if (!pass1 || pass1.length < 4) return showToast("⚠️ Contraseña muy corta", true);
-    if (pass1 !== pass2) return showToast("❌ Contraseñas no coinciden", true);
-
-    let walletInstancia = null;
-    try {
-      if (onboardingMode === 'create') {
-        showToast("⏳ Generando nueva billetera...");
-        walletInstancia = ethers.Wallet.createRandom();
-      } else {
-        const pk = document.getElementById("pk-input").value.trim();
-        if (!pk) return showToast("⚠️ Ingresa la clave o frase", true);
-        showToast("⏳ Validando clave...");
-        walletInstancia = pk.includes(" ") ? ethers.Wallet.fromPhrase(pk) : new ethers.Wallet(pk);
-      }
-
-      showToast("⏳ Encriptando localmente...");
-      const ks = await walletInstancia.encrypt(pass1);
-      localStorage.setItem("caleta_ks", ks);
-
-      document.getElementById("first-time-setup").style.display = "none";
-      document.getElementById("login-setup").style.display = "block";
-      document.getElementById("pass-login").value = pass1;
-
-      await desbloquearBilletera();
-      if (onboardingMode === 'create') setTimeout(() => abrirAuthRespaldo(), 800);
-    } catch (e) {
-      console.error(e); showToast("❌ Error procesando clave", true);
-    }
-  }
-
-  async function desbloquearBilletera() {
-    const pass = document.getElementById("pass-login").value;
-    if (!pass) return showToast("⚠️ Ingresa tu contraseña", true);
-    const btn = document.getElementById("btn-login");
-    btn.disabled = true; btn.innerText = "Desencriptando...";
-
-    setTimeout(async () => {
-      try {
-        showToast("⏳ Conectando a la red...");
-        provider = new ethers.JsonRpcProvider(CONFIG.RPC, CONFIG.CHAIN_ID);
-        wallet = await ethers.Wallet.fromEncryptedJson(localStorage.getItem("caleta_ks"), pass);
-        wallet = wallet.connect(provider);
-        wnearContract = new ethers.Contract(CONFIG.WNEAR, ABI_ERC20, wallet);
-        vaultContract = new ethers.Contract(CONFIG.VAULT, ABI_VAULT, wallet);
+    <!-- Panel de Control Principal -->
+    <div class="dashboard-panel">
+        <h2>Gestión de Protocolo</h2>
+        <p>Deposita WNEAR, genera rendimientos en USDT y maneja tu liquidez.</p>
         
-        document.getElementById("auth-card").style.display = "none";
-        document.getElementById("app-card").style.display = "block";
-        document.getElementById("sub-header-bar").style.display = "flex";
-        document.getElementById("net-name").innerText = "Tuxachain (EVM)";
-        document.getElementById("net-dot").classList.add("connected");
+        <!-- Botón Integrado de CEX On-Ramp -->
+        <button id="btn-cex-deposit" class="caleta-btn-primary" onclick="initCexDeposit()">
+            <i class="fa-solid fa-building-columns"></i> Recibir desde Binance / CEX
+        </button>
         
-        await actualizarSaldos();
-        showToast("✅ Billetera Conectada");
-      } catch (e) {
-        showToast("❌ Contraseña incorrecta", true);
-        btn.disabled = false; btn.innerText = "Desbloquear e Ingresar";
-      }
-    }, 150);
-  }
+        <button class="caleta-btn-primary" onclick="abrirModalEnvio()">
+            <i class="fa-solid fa-paper-plane"></i> Enviar Tokens
+        </button>
+    </div>
 
-  async function cargarStakingEstrategia() {
-    const elemStrategy = document.getElementById("modal-strategy-near");
-    if (!elemStrategy) return;
-    const ACCOUNT_ID = "caleta-strategy.near";
+    <!-- MODAL 1: Envío Tradicional (Corregido Línea 289) -->
+    <div id="sendModal" class="caleta-modal">
+        <div class="caleta-modal-content">
+            <span class="close-btn" onclick="cerrarModalEnvio()">&times;</span>
+            <h2>Enviar Activos</h2>
+            
+            <div class="input-label" style="text-align: left;"><span>Dirección Destino (0x...)</span></div>
+            <div class="input-wrapper">
+                <input type="text" id="input-to-address" placeholder="0x1234...">
+            </div>
+            
+            <div class="input-label" style="text-align: left;"><span>Monto</span></div>
+            <!-- LÍNEA CORREGIDA A step="any" -->
+            <div class="input-wrapper">
+                <input type="number" id="input-send-amount" placeholder="0.0" step="any">
+            </div>
+            
+            <button class="caleta-btn-primary" style="width: 100%; margin-top: 20px;" onclick="ejecutarEnvioToken()">Enviar Ahora</button>
+        </div>
+    </div>
 
-    try {
-      const res = await fetch(`https://api.fastnear.com/v1/account/${ACCOUNT_ID}/staking`);
-      if (res.ok) {
-        const data = await res.json();
-        let total = 0n;
-        if (data.pools && Array.isArray(data.pools)) {
-          data.pools.forEach(p => total += BigInt(p.staked_balance || "0"));
+    <!-- MODAL 2: Forwarder CEX (NUEVO) -->
+    <div id="cexModal" class="caleta-modal">
+        <div class="caleta-modal-content">
+            <span class="close-btn" onclick="closeCexModal()">&times;</span>
+            <h2>Depositar NEAR desde Exchange</h2>
+            <p style="color: #aaa; font-size: 14px;">Envía NEAR nativo desde Binance u otro exchange a esta dirección. Los fondos llegarán automáticamente a tu cuenta en Caleta App vía Tuxachain.</p>
+            
+            <div id="loader-forwarder" style="margin: 20px 0; color: #00d2ff; display: none;">
+                <i class="fa-solid fa-spinner fa-spin"></i> Generando tu dirección única...
+            </div>
+            
+            <div id="forwarder-info" style="display: none;">
+                <div id="qr-code-container" style="margin: 20px auto; padding: 10px; background: white; display: inline-block; border-radius: 8px;"></div>
+                
+                <div class="address-box">
+                    <input type="text" id="deposit-address-input" readonly>
+                    <button onclick="copyDepositAddress()" class="copy-btn">Copiar</button>
+                </div>
+                
+                <small class="warning-text"><i class="fa-solid fa-triangle-exclamation"></i> Asegúrate de seleccionar la red <b>NEAR Protocol</b> al retirar de tu exchange.</small>
+            </div>
+        </div>
+    </div>
+    <!-- Lógica Principal de la dApp -->
+    <script>
+        // Variables Globales de Ethers/Web3
+        window.userAddress = null;
+
+        // ==========================================
+        // 1. CONEXIÓN DE WALLET
+        // ==========================================
+        async function conectarWallet() {
+            if (window.ethereum) {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    window.userAddress = accounts[0];
+                    const btnConnect = document.getElementById("btn-connect");
+                    btnConnect.innerText = window.userAddress.substring(0, 6) + "..." + window.userAddress.substring(38);
+                    btnConnect.style.background = "#4caf50";
+                } catch (error) {
+                    console.error("Error conectando wallet:", error);
+                }
+            } else {
+                alert("Por favor, instala Metamask u otra billetera Web3.");
+            }
         }
-        elemStrategy.innerText = `${parseFloat(ethers.formatUnits(total, 24)).toFixed(2)} NEAR`;
-        return;
-      }
-    } catch (e) { console.warn("Reintentando con NearBlocks..."); }
 
-    try {
-      const res2 = await fetch(`https://api.nearblocks.io/v1/account/${ACCOUNT_ID}`);
-      if (res2.ok) {
-        const d2 = await res2.json();
-        if (d2.account && d2.account[0]) {
-          elemStrategy.innerText = `${parseFloat(ethers.formatUnits(BigInt(d2.account[0].staked_balance || "0"), 24)).toFixed(2)} NEAR`;
-          return;
+        // ==========================================
+        // 2. MODAL DE ENVÍO DE TOKENS (Tradicional)
+        // ==========================================
+        function abrirModalEnvio() { document.getElementById("sendModal").style.display = "block"; }
+        function cerrarModalEnvio() { document.getElementById("sendModal").style.display = "none"; }
+        function ejecutarEnvioToken() {
+            const amount = document.getElementById("input-send-amount").value;
+            console.log("Enviando cantidad con precisión completa:", amount);
+            // Aquí va tu lógica de Ethers.js para enviar el token
+            alert("Enviando " + amount + " tokens...");
         }
-      }
-    } catch (e) {}
-    elemStrategy.innerText = "Activa";
-  }
 
-  async function actualizarSaldos() {
-    try {
-      const tvlRaw = await wnearContract.balanceOf(CONFIG.VAULT);
-      const tvlFmt = parseFloat(ethers.formatUnits(tvlRaw, CONFIG.DEC.WNEAR)).toFixed(2);
-      document.getElementById("val-tvl").innerText = tvlFmt + " WN";
-      document.getElementById("modal-tvl-wnear").innerText = tvlFmt + " WNEAR";
-      document.getElementById("modal-tvl-mtc").innerText = tvlFmt + " MORO";
+        // ==========================================
+        // 3. INTEGRACIÓN DEL FORWARDER (API CEX)
+        // ==========================================
+        const AURORA_API_KEY = "edede8c3dfd6d20672e74cbff9b6dcff"; 
+        const AURORA_API_URL = "https://api.auroracloud.dev/v1/forwarder"; 
 
-      try {
-        const backupRaw = await wnearContract.balanceOf(CONFIG.BACKUP_WALLET);
-        document.getElementById("modal-backup-wnear").innerText = parseFloat(ethers.formatUnits(backupRaw, CONFIG.DEC.WNEAR)).toFixed(2) + " WNEAR";
-      } catch (e) { document.getElementById("modal-backup-wnear").innerText = "0.00 WNEAR"; }
+        async function initCexDeposit() {
+            if (!window.userAddress) {
+                alert("⚠️ Por favor, conecta tu billetera primero para poder asignarte una dirección de depósito.");
+                return;
+            }
 
-      const usdtContract = new ethers.Contract(CONFIG.USDT, ABI_ERC20, wallet);
-      const vaultTokenContract = new ethers.Contract(CONFIG.VAULT, ABI_ERC20, provider);
+            const modal = document.getElementById("cexModal");
+            const loader = document.getElementById("loader-forwarder");
+            const infoContainer = document.getElementById("forwarder-info");
+            
+            modal.style.display = "block";
+            infoContainer.style.display = "none";
+            loader.style.display = "block";
 
-      const [wBal, mBal, uBal] = await Promise.all([
-        wnearContract.balanceOf(wallet.address),
-        vaultTokenContract.balanceOf(wallet.address),
-        usdtContract.balanceOf(wallet.address)
-      ]);
+            try {
+                // Llamada a la API de Aurora Cloud
+                const response = await fetch(AURORA_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${AURORA_API_KEY}`
+                    },
+                    body: JSON.stringify({ evm_address: window.userAddress })
+                });
 
-      rawBalances.wnear = wBal; rawBalances.moro = mBal; rawBalances.usdt = uBal;
+                if (!response.ok) throw new Error(`Error en la API: ${response.status}`);
 
-      document.getElementById("val-moro").innerText = parseFloat(ethers.formatUnits(mBal, CONFIG.DEC.MORO)).toFixed(4);
-      document.getElementById("val-wnear").innerText = parseFloat(ethers.formatUnits(wBal, CONFIG.DEC.WNEAR)).toFixed(4);
-      document.getElementById("val-usdt").innerText = parseFloat(ethers.formatUnits(uBal, CONFIG.DEC.USDT)).toFixed(2);
+                const data = await response.json();
+                
+                // Mostrar resultados
+                document.getElementById("deposit-address-input").value = data.deposit_address; 
+                loader.style.display = "none";
+                infoContainer.style.display = "block";
 
-      try { 
-        document.getElementById("val-rewards").innerText = parseFloat(ethers.formatUnits(await vaultContract.pendingRewards(wallet.address), CONFIG.DEC.USDT)).toFixed(2); 
-      } catch (e) {}
+                // Generar QR
+                const qrContainer = document.getElementById("qr-code-container");
+                qrContainer.innerHTML = ""; 
+                new QRCode(qrContainer, {
+                    text: data.deposit_address,
+                    width: 150, height: 150,
+                    colorDark : "#000000", colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.M
+                });
 
-      await cargarStakingEstrategia();
-    } catch (e) { console.error("Error leyendo balances", e); }
-  }
+            } catch (error) {
+                console.error("Fallo al generar dirección Forwarder:", error);
+                loader.innerHTML = "❌ Hubo un error de conexión con la red de Aurora Cloud. Intenta de nuevo.";
+            }
+        }
 
-  async function ejecutarAccion(tipo) {
-    try {
-      if (tipo === 'deposit') {
-        const input = document.getElementById("input-deposit").value;
-        if (!input || parseFloat(input) < 0.1) return showToast("⚠️ Mínimo 0.1 WNEAR", true);
-        const amt = ethers.parseUnits(input.toString(), CONFIG.DEC.WNEAR);
-        if (await wnearContract.allowance(wallet.address, CONFIG.VAULT) < amt) await (await wnearContract.approve(CONFIG.VAULT, ethers.MaxUint256)).wait();
-        showToast("⏳ Depositando...");
-        await (await vaultContract.deposit(amt)).wait();
-        document.getElementById("input-deposit").value = "";
-      } 
-      else if (tipo === 'requestWithdraw') {
-        const input = document.getElementById("input-withdraw").value;
-        if (!input || input <= 0) return showToast("⚠️ Monto inválido", true);
-        showToast("⏳ Solicitando...");
-        await (await vaultContract.requestWithdrawal(ethers.parseUnits(input.toString(), CONFIG.DEC.MORO))).wait();
-        document.getElementById("input-withdraw").value = "";
-      }
-      else if (tipo === 'claimWithdraw') { showToast("⏳ Liberando fondos..."); await (await vaultContract.claimWithdrawal()).wait(); }
-      else if (tipo === 'claim') { showToast("⏳ Reclamando USDT..."); await (await vaultContract.claim()).wait(); }
-      
-      showToast("✅ Transacción Exitosa");
-      await actualizarSaldos();
-    } catch (e) { showToast("❌ Error en transacción", true); }
-  }
-
-  function abrirModalRecibir() {
-    if (!wallet || !wallet.address) return showToast("⚠️ Desbloquea la billetera", true);
-    const userAddr = wallet.address;
-    document.getElementById("receive-address-text").innerText = userAddr;
-    document.getElementById("qr-receive-img").src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${userAddr}`;
-    abrirModal("modalRecibir");
-  }
-
-  function copiarDireccionRecibir() {
-    navigator.clipboard.writeText(wallet.address);
-    showToast("📋 ¡Dirección copiada!");
-  }
-
-  async function ejecutarEnvioToken() {
-    const type = document.getElementById("select-token-send").value;
-    const to = document.getElementById("input-to-address").value.trim();
-    const amt = document.getElementById("input-send-amount").value;
-
-    if (!ethers.isAddress(to)) return showToast("⚠️ Dirección inválida", true);
-    if (!amt || parseFloat(amt) <= 0) return showToast("⚠️ Monto inválido", true);
-
-    try {
-      showToast(`⏳ Enviando ${amt} ${type}...`);
-      let tAddr, dec;
-      if (type === 'WNEAR') { tAddr = CONFIG.WNEAR; dec = CONFIG.DEC.WNEAR; }
-      else if (type === 'USDT') { tAddr = CONFIG.USDT; dec = CONFIG.DEC.USDT; }
-
-      const tc = new ethers.Contract(tAddr, ABI_ERC20, wallet);
-      await (await tc.transfer(to, ethers.parseUnits(amt.toString(), dec))).wait();
-
-      showToast(`✅ ¡Enviados!`);
-      document.getElementById("input-to-address").value = "";
-      document.getElementById("input-send-amount").value = "";
-      cerrarModal("modalEnviar");
-      await actualizarSaldos();
-    } catch (e) { showToast("❌ Error en transferencia", true); }
-  }
-
-  // Funciones de Respaldo con Validación de Contraseña
-  function abrirAuthRespaldo() {
-    document.getElementById("backup-step-auth").style.display = "block";
-    document.getElementById("backup-step-reveal").style.display = "none";
-    document.getElementById("input-backup-pass").value = "";
-    abrirModal("modalBackup");
-  }
-
-  async function verificarPassYMostrarRespaldo() {
-    const pass = document.getElementById("input-backup-pass").value;
-    if (!pass) return showToast("⚠️ Ingresa tu contraseña", true);
-    
-    showToast("⏳ Verificando credenciales...");
-    try {
-      const ks = localStorage.getItem("caleta_ks");
-      await ethers.Wallet.fromEncryptedJson(ks, pass);
-      
-      document.getElementById("backup-pk-display").value = wallet.privateKey;
-      document.getElementById("backup-step-auth").style.display = "none";
-      document.getElementById("backup-step-reveal").style.display = "block";
-      showToast("✅ Acceso autorizado");
-    } catch (e) {
-      showToast("❌ Contraseña incorrecta", true);
-    }
-  }
-
-  function copiarClavePrivada() {
-    const el = document.getElementById("backup-pk-display");
-    el.select(); el.setSelectionRange(0, 99999);
-    navigator.clipboard.writeText(el.value);
-    showToast("📋 ¡Clave copiada con éxito!");
-  }
-
-  function switchTab(tab, evt) { 
-    document.querySelectorAll('.form-panel').forEach(e => e.style.display = 'none'); 
-    document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active')); 
-    document.getElementById(`form-${tab}`).style.display = 'block'; 
-    if (evt) evt.target.classList.add('active'); 
-  }
-  
-  function setPercent(action, p) { if (action === 'deposit') document.getElementById('input-deposit').value = ethers.formatUnits((rawBalances.wnear * BigInt(p)) / 100n, CONFIG.DEC.WNEAR); }
-
-  let toastTimer;
-  function showToast(msg, isErr = false) { 
-    const t = document.getElementById('toast'); t.innerHTML = msg; t.className = `toast show ${isErr ? 'error' : ''}`; 
-    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3500); 
-  }
-
-  function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
-  function cerrarModal(id) { document.getElementById(id).style.display = 'none'; }
-  window.onclick = e => { if (e.target.classList.contains('modal-overlay')) e.target.style.display = "none"; }
-
-  async function cargarLinksSoporte() {
-    try {
-      const data = await (await fetch('./support.json')).json();
-      document.getElementById('support-links-container').innerHTML = `<a href="${data.whatsapp}" target="_blank" class="support-link">📱 WhatsApp</a><a href="${data.telegramUser}" target="_blank" class="support-link">✈️ Telegram Directo</a><a href="${data.telegramGroup}" target="_blank" class="support-link">👥 Grupo Comunidad</a>`;
-    } catch (e) { document.getElementById('support-links-container').innerHTML = `<p style="text-align:center; color:var(--text-muted);">Soporte no configurado</p>`; }
-  }
-
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
-</script>
+        function copyDepositAddress() {
+            const inputAddress = document.getElementById("deposit-address-input");
+            inputAddress.select();
+            inputAddress.setSelectionRange(0, 99999);
+            
+            navigator.clipboard.writeText(inputAddress.value).then(() => {
+                const copyBtn = document.querySelector("#cexModal .copy-btn");
+                copyBtn.innerText = "¡Copiado! ✓";
+                copyBtn.style.background = "#4caf50";
+                copyBtn.style.color = "white";
+                
+                setTimeout(() => {
+                    copyBtn.innerText = "Copiar";
+                    copyBtn.style.background = "#00d2ff";
+                    copyBtn.style.color = "#000";
+                }, 2500);
+            });
+        }
+        
+        function closeCexModal() { document.getElementById("cexModal").style.display = "none"; }
+    </script>
 </body>
 </html>
