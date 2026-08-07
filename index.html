@@ -8,10 +8,11 @@
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#0F172A">
 
+  <!-- Script de emergencia para resetear caché -->
   <script>
-    // Sistema de emergencia para resetear caché
     if (window.location.search.includes('reset=true') || window.location.search.includes('clean=1')) {
-      localStorage.clear(); sessionStorage.clear();
+      localStorage.clear();
+      sessionStorage.clear();
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
       }
@@ -22,85 +23,375 @@
 
   <!-- Ethers.js v6 -->
   <script src="./ethers.umd.min.js"></script>
-  <!-- Librería QR para Aurora Cloud Forwarder -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  
+
   <style>
-    :root { --bg-dark: #0F172A; --surface: #1E293B; --brand-purple: #8B5CF6; --accent-green: #10B981; --accent-orange: #F59E0B; --text-main: #F8FAFC; --text-muted: #94A3B8; --border-color: #334155; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-dark); color: var(--text-main); margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; }
-    
-    .app-container { width: 100%; max-width: 440px; background: var(--bg-dark); box-sizing: border-box; position: relative; display: flex; flex-direction: column; min-height: 100vh; transition: all 0.3s ease; }
-    
+    /* Variables y reset */
+    :root {
+      --bg-dark: #0F172A;
+      --surface: #1E293B;
+      --brand-purple: #8B5CF6;
+      --accent-green: #10B981;
+      --accent-orange: #F59E0B;
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --border-color: #334155;
+      --radius: 16px;
+      --shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 0;
+      margin: 0;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 440px;
+      background: var(--bg-dark);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      transition: all 0.3s ease;
+    }
+
+    /* Estilos para pantallas más grandes */
     @media (min-width: 768px) {
       body { align-items: center; background-color: #0B1121; padding: 2rem 0; }
-      .app-container { max-width: 600px; min-height: auto; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: 0 10px 40px rgba(0,0,0,0.6); overflow: hidden; background: var(--bg-dark); }
+      .app-container {
+        max-width: 600px;
+        min-height: auto;
+        border-radius: var(--radius);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        background: var(--bg-dark);
+      }
       .stats-grid, .card, .tab-group { margin: 0 1.5rem 20px 1.5rem; }
       .app-logo { max-height: 46px; max-width: 180px; }
     }
 
-    header { display: flex; justify-content: space-between; align-items: center; padding: 1.2rem 1.5rem; background-color: var(--surface); border-bottom: 1px solid var(--border-color); }
-    
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.2rem 1.5rem;
+      background-color: var(--surface);
+      border-bottom: 1px solid var(--border-color);
+    }
+
     .logo { display: flex; align-items: center; }
-    .app-logo { height: auto; max-height: 36px; max-width: 140px; object-fit: contain; transition: all 0.3s ease; }
-    
-    .network-badge { display: flex; align-items: center; gap: 6px; background: var(--bg-dark); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); }
-    .network-dot { width: 8px; height: 8px; background-color: var(--accent-orange); border-radius: 50%; transition: background-color 0.3s; }
+    .app-logo {
+      height: auto;
+      max-height: 36px;
+      max-width: 140px;
+      object-fit: contain;
+      transition: all 0.3s ease;
+    }
+
+    .network-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .network-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--accent-orange);
+      border-radius: 50%;
+      transition: background-color 0.3s;
+    }
     .network-dot.connected { background-color: var(--accent-green); }
 
-    .sub-header-bar { display: flex; justify-content: center; gap: 10px; padding: 0.8rem 1.5rem; background: var(--surface); border-bottom: 1px solid var(--border-color); margin-bottom: 1rem; flex-wrap: wrap; }
-    
-    .btn-outline { background-color: transparent; border: 1px solid var(--brand-purple); color: var(--brand-purple); padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-    .btn-outline:hover { background-color: rgba(139, 92, 246, 0.1); }
+    /* Sub-header */
+    .sub-header-bar {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 0.8rem 1.5rem;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    /* Botones outline */
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--brand-purple);
+      color: var(--brand-purple);
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-outline:hover { background: rgba(139, 92, 246, 0.1); }
     #btn-install-app { display: none; }
 
-    .card { background: var(--surface); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; margin: 0 1rem 16px 1rem; }
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 1rem 16px 1rem; }
-    .stat-box { background: var(--surface); padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); text-align: center; }
-    .stat-box.clickable { cursor: pointer; transition: transform 0.2s, border-color 0.2s; }
-    .stat-box.clickable:hover { border-color: var(--brand-purple); transform: translateY(-2px); }
-    .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    .stat-value { font-size: 1.15rem; font-weight: 800; color: var(--text-main); word-break: break-all; }
-    
-    .balance-hero { text-align: center; padding: 20px 16px; border-bottom: 1px dashed var(--border-color); margin-bottom: 20px; }
-    .balance-amount { font-size: 2.5rem; font-weight: 900; color: var(--brand-purple); margin: 4px 0 2px 0; letter-spacing: -1px; }
-    
-    .tab-group { display: flex; background: var(--surface); padding: 4px; border-radius: 12px; margin: 0 1rem 20px 1rem; border: 1px solid var(--border-color); }
-    .tab-btn { flex: 1; padding: 12px; border: none; background: transparent; color: var(--text-muted); font-weight: 700; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s; }
-    .tab-btn.active { background: var(--border-color); color: var(--text-main); }
-    
-    .input-label { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; }
+    /* Tarjetas y estadísticas */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin: 0 1rem 16px 1rem;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 0 1rem 16px 1rem;
+    }
+    .stat-box {
+      background: var(--surface);
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      text-align: center;
+    }
+    .stat-box.clickable {
+      cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .stat-box.clickable:hover {
+      border-color: var(--brand-purple);
+      transform: translateY(-2px);
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stat-value {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-main);
+      word-break: break-all;
+    }
+
+    .balance-hero {
+      text-align: center;
+      padding: 20px 16px;
+      border-bottom: 1px dashed var(--border-color);
+      margin-bottom: 20px;
+    }
+    .balance-amount {
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: var(--brand-purple);
+      margin: 4px 0 2px 0;
+      letter-spacing: -1px;
+    }
+
+    /* Tabs */
+    .tab-group {
+      display: flex;
+      background: var(--surface);
+      padding: 4px;
+      border-radius: 12px;
+      margin: 0 1rem 20px 1rem;
+      border: 1px solid var(--border-color);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: var(--border-color);
+      color: var(--text-main);
+    }
+
+    /* Formularios */
+    .input-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
     .input-wrapper { margin-bottom: 16px; }
-    input, select { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-dark); color: var(--text-main); font-size: 1rem; box-sizing: border-box; outline: none; transition: border-color 0.2s; }
-    input:focus, select:focus { border-color: var(--brand-purple); box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2); }
-    
-    .preset-group { display: flex; gap: 8px; margin-bottom: 20px; }
-    .preset-btn { flex: 1; padding: 10px 4px; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-    .preset-btn:hover { border-color: var(--brand-purple); color: var(--text-main); }
-    
-    .btn-action { width: 100%; padding: 16px; border: none; border-radius: 12px; background: var(--brand-purple); color: #fff; font-size: 1rem; font-weight: 800; cursor: pointer; transition: transform 0.1s, opacity 0.2s; }
+    input, select {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus {
+      border-color: var(--brand-purple);
+      box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+    }
+
+    .preset-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .preset-btn {
+      flex: 1;
+      padding: 10px 4px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .preset-btn:hover {
+      border-color: var(--brand-purple);
+      color: var(--text-main);
+    }
+
+    .btn-action {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 12px;
+      background: var(--brand-purple);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+    }
     .btn-action:active { transform: scale(0.98); }
     .btn-action:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn-orange { background: var(--accent-orange); }
-    
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface); border: 1px solid var(--brand-purple); color: var(--text-main); padding: 12px 24px; border-radius: 30px; font-size: 0.9rem; font-weight: 600; opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--surface);
+      border: 1px solid var(--brand-purple);
+      color: var(--text-main);
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
     .toast.error { border-color: var(--accent-orange); }
-    
-    .withdraw-step { border: 1px dashed var(--border-color); padding: 16px; border-radius: 12px; margin-bottom: 12px; background: var(--bg-dark); }
-    
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 1000; }
-    .modal-content { background-color: var(--surface); padding: 2rem; border-radius: 16px; width: 90%; max-width: 380px; border: 1px solid var(--border-color); position: relative; }
-    .close-modal { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; transition: color 0.2s; }
+
+    .withdraw-step {
+      border: 1px dashed var(--border-color);
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      background: var(--bg-dark);
+    }
+
+    /* Modales */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(4px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background-color: var(--surface);
+      padding: 2rem;
+      border-radius: var(--radius);
+      width: 90%;
+      max-width: 380px;
+      border: 1px solid var(--border-color);
+      position: relative;
+    }
+    .close-modal {
+      position: absolute;
+      top: 1rem; right: 1rem;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
     .close-modal:hover { color: var(--text-main); }
-    .modal-title { margin-top: 0; color: var(--brand-purple); font-size: 1.3rem; }
-    .data-list { list-style: none; padding: 0; margin: 1.5rem 0 0 0; }
-    .data-list li { display: flex; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.95rem;}
+    .modal-title {
+      margin-top: 0;
+      color: var(--brand-purple);
+      font-size: 1.3rem;
+    }
+    .data-list {
+      list-style: none;
+      padding: 0;
+      margin: 1.5rem 0 0 0;
+    }
+    .data-list li {
+      display: flex;
+      justify-content: space-between;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.95rem;
+    }
     .data-list li:last-child { border-bottom: none; }
-    .support-link { display: block; text-decoration: none; color: var(--text-main); background-color: var(--bg-dark); padding: 1rem; border-radius: 8px; margin-bottom: 0.8rem; text-align: center; border: 1px solid var(--border-color); font-weight: 600; font-size: 0.95rem; transition: border-color 0.2s; }
+    .support-link {
+      display: block;
+      text-decoration: none;
+      color: var(--text-main);
+      background-color: var(--bg-dark);
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 0.8rem;
+      text-align: center;
+      border: 1px solid var(--border-color);
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+    }
     .support-link:hover { border-color: var(--brand-purple); }
   </style>
-</head>
-<body>
+  </head>
+  <body>
 <div class="app-container">
   <header>
     <div class="logo">
@@ -120,6 +411,7 @@
     <button class="btn-outline" onclick="abrirModal('modalSoporte')">Soporte</button>
   </div>
 
+  <!-- Auth Card -->
   <div class="card" id="auth-card">
     <h3 style="margin-top:0; color: var(--brand-purple); margin-bottom: 1rem;">Billetera Caleta</h3>
     
@@ -153,6 +445,8 @@
       </div>
     </div>
   </div>
+
+  <!-- App Card -->
   <div id="app-card" style="display:none;">
     <div class="stats-grid">
       <div class="stat-box"><div class="stat-label">Gas Protocolo</div><div class="stat-value" style="color: var(--brand-purple);">Gratis</div></div>
@@ -192,11 +486,6 @@
     <div style="display: flex; gap: 10px; margin: 0 1rem 10px 1rem;">
       <button class="btn-action" style="background: var(--surface); border: 1px solid var(--border-color); flex: 1; padding: 12px;" onclick="abrirModalRecibir()">📥 Recibir</button>
       <button class="btn-action" style="background: var(--surface); border: 1px solid var(--border-color); flex: 1; padding: 12px;" onclick="abrirModal('modalEnviar')">📤 Enviar</button>
-    </div>
-    
-    <!-- Botón Corregido (Se eliminó Binance) -->
-    <div style="margin: 0 1rem 20px 1rem;">
-      <button class="btn-action" style="background: var(--surface); border: 1px solid var(--brand-purple); flex: 1; padding: 12px; color: var(--text-main);" onclick="initCexDeposit()">🏦 Recibir desde CEX / Exchange</button>
     </div>
 
     <div class="tab-group">
@@ -243,8 +532,16 @@
 
   <div id="toast" class="toast"></div>
 
-  <div id="modalSoporte" class="modal-overlay"><div class="modal-content"><button class="close-modal" onclick="cerrarModal('modalSoporte')">&times;</button><h2 class="modal-title">Soporte Técnico</h2><div id="support-links-container"><p style="text-align:center;">Cargando red...</p></div></div></div>
-  
+  <!-- Modal Soporte -->
+  <div id="modalSoporte" class="modal-overlay">
+    <div class="modal-content">
+      <button class="close-modal" onclick="cerrarModal('modalSoporte')">&times;</button>
+      <h2 class="modal-title">Soporte Técnico</h2>
+      <div id="support-links-container"><p style="text-align:center;">Cargando red...</p></div>
+    </div>
+  </div>
+
+  <!-- Modal Liquidez -->
   <div id="modalLiquidez" class="modal-overlay">
     <div class="modal-content">
       <button class="close-modal" onclick="cerrarModal('modalLiquidez')">&times;</button>
@@ -258,6 +555,7 @@
     </div>
   </div>
 
+  <!-- Modal Recibir -->
   <div id="modalRecibir" class="modal-overlay">
     <div class="modal-content" style="text-align: center;">
       <button class="close-modal" onclick="cerrarModal('modalRecibir')">&times;</button>
@@ -269,26 +567,7 @@
     </div>
   </div>
 
-  <!-- Modal CEX Corregido (Se eliminó Binance) -->
-  <div id="cexModal" class="modal-overlay">
-    <div class="modal-content" style="text-align: center;">
-      <button class="close-modal" onclick="cerrarModal('cexModal')">&times;</button>
-      <h2 class="modal-title" style="color: var(--brand-purple);">🏦 Depositar NEAR desde CEX</h2>
-      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Envía NEAR desde tu exchange directamente a esta dirección generada por Aurora Cloud.</p>
-      
-      <div id="loader-forwarder" style="margin: 20px 0; color: var(--brand-purple); display: none; font-weight: bold;">
-        ⏳ Generando dirección única...
-      </div>
-      
-      <div id="forwarder-info" style="display: none;">
-        <div style="margin: 15px 0;"><div id="qr-forwarder-container" style="display: inline-block; padding: 10px; background: white; border-radius: 12px; border: 2px solid var(--border-color);"></div></div>
-        <div class="input-wrapper"><input type="text" id="deposit-address-input" readonly style="font-size: 0.75rem; text-align: center; color: var(--brand-purple); font-weight: bold; background: var(--bg-dark);"></div>
-        <button class="btn-action" onclick="copiarDireccionCex()">📋 Copiar Dirección</button>
-        <p style="font-size: 0.75rem; color: var(--accent-orange); margin-top: 12px; font-weight: 600;">⚠️ Asegúrate de seleccionar la red NEAR Protocol en tu exchange.</p>
-      </div>
-    </div>
-  </div>
-
+  <!-- Modal Enviar -->
   <div id="modalEnviar" class="modal-overlay">
     <div class="modal-content">
       <button class="close-modal" onclick="cerrarModal('modalEnviar')">&times;</button>
@@ -308,6 +587,7 @@
     </div>
   </div>
 
+  <!-- Modal Backup -->
   <div id="modalBackup" class="modal-overlay">
     <div class="modal-content">
       <button class="close-modal" onclick="cerrarModal('modalBackup')">&times;</button>
@@ -331,12 +611,11 @@
       </div>
     </div>
   </div>
-  </div>
-          <script>
-  // --- CREDENCIALES DE APIS (Corregido y Estructurado) ---
+              </div>
+            <script>
+  // --- CREDENCIALES Y CONFIGURACIÓN ---
   const APP_CREDENTIALS = {
-    gasSponsorship: "edede8c3dfd6d20672e74cbff9b6dcff", // Reservado para futura lectura de gas patrocinado
-    auroraForwarder: "1a1ba30088b3605d563363845e99d56f" // Activa la función de forwarder
+    gasSponsorship: "edede8c3dfd6d20672e74cbff9b6dcff" // Solo para futura referencia
   };
 
   const CONFIG = {
@@ -363,11 +642,12 @@
     "function pendingRewards(address) view returns (uint256)"
   ];
 
-  let provider, wallet, wnearContract, vaultContract, rawBalances = { wnear: 0n, moro: 0n, usdt: 0n };
+  let provider, wallet, wnearContract, vaultContract;
+  let rawBalances = { wnear: 0n, moro: 0n, usdt: 0n };
   let deferredInstallPrompt = null;
   let onboardingMode = 'create';
-  let userDepositAddress = "";
 
+  // --- Instalación PWA ---
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredInstallPrompt = e;
@@ -383,6 +663,7 @@
     });
   }
 
+  // --- Inicialización ---
   document.addEventListener("DOMContentLoaded", () => {
     try {
       const hasKey = localStorage.getItem("caleta_ks");
@@ -390,20 +671,18 @@
       document.getElementById("login-setup").style.display = hasKey ? "block" : "none";
       cargarLinksSoporte();
       iniciarConteoSemanal();
-    } catch (e) {}
+    } catch (e) { /* ignora errores iniciales */ }
   });
 
+  // --- Timer de cosecha ---
   function iniciarConteoSemanal() {
     function actualizarTimer() {
       const ahora = new Date();
-      const DIA_CORTE = 0; 
+      const DIA_CORTE = 0; // domingo
       const proximoCiclo = new Date(ahora);
-      const diaSemanaActual = ahora.getUTCDay();
-      
-      let diasFaltantes = (DIA_CORTE - diaSemanaActual + 7) % 7;
+      let diasFaltantes = (DIA_CORTE - ahora.getUTCDay() + 7) % 7;
       proximoCiclo.setUTCDate(ahora.getUTCDate() + diasFaltantes);
       proximoCiclo.setUTCHours(0, 0, 0, 0);
-
       if (proximoCiclo <= ahora) proximoCiclo.setUTCDate(proximoCiclo.getUTCDate() + 7);
 
       const diff = proximoCiclo - ahora;
@@ -419,6 +698,7 @@
     setInterval(actualizarTimer, 1000);
   }
 
+  // --- Onboarding ---
   function setOnboardingMode(mode) {
     onboardingMode = mode;
     const btnCreate = document.getElementById("tab-mode-create");
@@ -507,6 +787,7 @@
     }, 150);
   }
 
+  // --- Cargar estrategia de staking ---
   async function cargarStakingEstrategia() {
     const elemStrategy = document.getElementById("modal-strategy-near");
     if (!elemStrategy) return;
@@ -523,7 +804,7 @@
         elemStrategy.innerText = `${parseFloat(ethers.formatUnits(total, 24)).toFixed(2)} NEAR`;
         return;
       }
-    } catch (e) { console.warn("Reintentando con NearBlocks..."); }
+    } catch (e) { /* fallback */ }
 
     try {
       const res2 = await fetch(`https://api.nearblocks.io/v1/account/${ACCOUNT_ID}`);
@@ -534,10 +815,11 @@
           return;
         }
       }
-    } catch (e) {}
+    } catch (e) { /* fallback */ }
     elemStrategy.innerText = "Activa";
   }
 
+  // --- Actualizar saldos ---
   async function actualizarSaldos() {
     try {
       const tvlRaw = await wnearContract.balanceOf(CONFIG.VAULT);
@@ -568,19 +850,22 @@
 
       try { 
         document.getElementById("val-rewards").innerText = parseFloat(ethers.formatUnits(await vaultContract.pendingRewards(wallet.address), CONFIG.DEC.USDT)).toFixed(2); 
-      } catch (e) {}
+      } catch (e) { /* sin rewards */ }
 
       await cargarStakingEstrategia();
     } catch (e) { console.error("Error leyendo balances", e); }
   }
 
+  // --- Ejecutar acciones del vault ---
   async function ejecutarAccion(tipo) {
     try {
       if (tipo === 'deposit') {
         const input = document.getElementById("input-deposit").value;
         if (!input || parseFloat(input) < 0.1) return showToast("⚠️ Mínimo 0.1 WNEAR", true);
         const amt = ethers.parseUnits(input.toString(), CONFIG.DEC.WNEAR);
-        if (await wnearContract.allowance(wallet.address, CONFIG.VAULT) < amt) await (await wnearContract.approve(CONFIG.VAULT, ethers.MaxUint256)).wait();
+        if (await wnearContract.allowance(wallet.address, CONFIG.VAULT) < amt) {
+          await (await wnearContract.approve(CONFIG.VAULT, ethers.MaxUint256)).wait();
+        }
         showToast("⏳ Depositando...");
         await (await vaultContract.deposit(amt)).wait();
         document.getElementById("input-deposit").value = "";
@@ -592,14 +877,24 @@
         await (await vaultContract.requestWithdrawal(ethers.parseUnits(input.toString(), CONFIG.DEC.MORO))).wait();
         document.getElementById("input-withdraw").value = "";
       }
-      else if (tipo === 'claimWithdraw') { showToast("⏳ Liberando fondos..."); await (await vaultContract.claimWithdrawal()).wait(); }
-      else if (tipo === 'claim') { showToast("⏳ Reclamando USDT..."); await (await vaultContract.claim()).wait(); }
+      else if (tipo === 'claimWithdraw') {
+        showToast("⏳ Liberando fondos...");
+        await (await vaultContract.claimWithdrawal()).wait();
+      }
+      else if (tipo === 'claim') {
+        showToast("⏳ Reclamando USDT...");
+        await (await vaultContract.claim()).wait();
+      }
       
       showToast("✅ Transacción Exitosa");
       await actualizarSaldos();
-    } catch (e) { showToast("❌ Error en transacción", true); }
+    } catch (e) {
+      console.error(e);
+      showToast("❌ Error en transacción", true);
+    }
   }
 
+  // --- Modal Recibir ---
   function abrirModalRecibir() {
     if (!wallet || !wallet.address) return showToast("⚠️ Desbloquea la billetera", true);
     const userAddr = wallet.address;
@@ -613,93 +908,7 @@
     showToast("📋 ¡Dirección copiada!");
   }
 
-  const AURORA_API_URL = "https://api.auroracloud.dev/v1/forwarder"; 
-
-  // --- FUNCIÓN DE FORWARDER CORREGIDA ---
-  async function initCexDeposit() {
-    if (!wallet || !wallet.address) {
-      return showToast("⚠️ Billetera no conectada", true);
-    }
-
-    const modal = document.getElementById("cexModal");
-    const loader = document.getElementById("loader-forwarder");
-    const infoContainer = document.getElementById("forwarder-info");
-
-    modal.style.display = "flex";
-    infoContainer.style.display = "none";
-    loader.style.display = "block";
-    loader.innerHTML = "⏳ Generando dirección única...";
-
-    try {
-      // Timeout de 10 segundos
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
-
-      const response = await fetch(AURORA_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': APP_CREDENTIALS.auroraForwarder   // ✅ Header correcto
-        },
-        body: JSON.stringify({ evm_address: wallet.address }),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeout);
-
-      if (!response.ok) {
-        let errorMsg = `Error HTTP ${response.status}`;
-        try {
-          const errData = await response.json();
-          errorMsg += `: ${errData.message || JSON.stringify(errData)}`;
-        } catch (_) {}
-        throw new Error(errorMsg);
-      }
-
-      const data = await response.json();
-      if (!data.deposit_address) {
-        throw new Error("La respuesta no contiene 'deposit_address'");
-      }
-
-      userDepositAddress = data.deposit_address;
-      document.getElementById("deposit-address-input").value = userDepositAddress;
-
-      loader.style.display = "none";
-      infoContainer.style.display = "block";
-
-      // Generar código QR
-      const qrContainer = document.getElementById("qr-forwarder-container");
-      qrContainer.innerHTML = ""; 
-      new QRCode(qrContainer, {
-        text: userDepositAddress,
-        width: 150,
-        height: 150,
-        colorDark: "#000000",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.M
-      });
-
-    } catch (error) {
-      console.error("Error generando dirección Forwarder:", error);
-      loader.innerHTML = `❌ Error: ${error.message || "Conexión fallida"}`;
-      // Ocultar tras 5 segundos si falla
-      setTimeout(() => {
-        if (loader.style.display !== "none") {
-          loader.style.display = "none";
-          infoContainer.style.display = "none";
-          cerrarModal("cexModal");
-          showToast("No se pudo generar la dirección. Intenta más tarde.", true);
-        }
-      }, 5000);
-    }
-  }
-
-  function copiarDireccionCex() {
-    if (!userDepositAddress) return;
-    navigator.clipboard.writeText(userDepositAddress);
-    showToast("📋 ¡Dirección de depósito copiada!");
-  }
-
+  // --- Enviar tokens ---
   async function ejecutarEnvioToken() {
     const type = document.getElementById("select-token-send").value;
     const to = document.getElementById("input-to-address").value.trim();
@@ -722,9 +931,13 @@
       document.getElementById("input-send-amount").value = "";
       cerrarModal("modalEnviar");
       await actualizarSaldos();
-    } catch (e) { showToast("❌ Error en transferencia", true); }
+    } catch (e) {
+      console.error(e);
+      showToast("❌ Error en transferencia", true);
+    }
   }
 
+  // --- Backup ---
   function abrirAuthRespaldo() {
     document.getElementById("backup-step-auth").style.display = "block";
     document.getElementById("backup-step-reveal").style.display = "none";
@@ -757,33 +970,52 @@
     showToast("📋 ¡Clave copiada con éxito!");
   }
 
+  // --- Tabs ---
   function switchTab(tab, evt) { 
     document.querySelectorAll('.form-panel').forEach(e => e.style.display = 'none'); 
     document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active')); 
     document.getElementById(`form-${tab}`).style.display = 'block'; 
     if (evt) evt.target.classList.add('active'); 
   }
-  
-  function setPercent(action, p) { if (action === 'deposit') document.getElementById('input-deposit').value = ethers.formatUnits((rawBalances.wnear * BigInt(p)) / 100n, CONFIG.DEC.WNEAR); }
 
-  let toastTimer;
-  function showToast(msg, isErr = false) { 
-    const t = document.getElementById('toast'); t.innerHTML = msg; t.className = `toast show ${isErr ? 'error' : ''}`; 
-    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3500); 
+  // --- Presets para depósito ---
+  function setPercent(action, p) { 
+    if (action === 'deposit') {
+      document.getElementById('input-deposit').value = ethers.formatUnits((rawBalances.wnear * BigInt(p)) / 100n, CONFIG.DEC.WNEAR);
+    }
   }
 
+  // --- Toast ---
+  let toastTimer;
+  function showToast(msg, isErr = false) { 
+    const t = document.getElementById('toast'); 
+    t.innerHTML = msg; 
+    t.className = `toast show ${isErr ? 'error' : ''}`; 
+    clearTimeout(toastTimer); 
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3500); 
+  }
+
+  // --- Modales ---
   function abrirModal(id) { document.getElementById(id).style.display = 'flex'; }
   function cerrarModal(id) { document.getElementById(id).style.display = 'none'; }
   window.onclick = e => { if (e.target.classList.contains('modal-overlay')) e.target.style.display = "none"; }
 
+  // --- Cargar soporte ---
   async function cargarLinksSoporte() {
     try {
       const data = await (await fetch('./support.json')).json();
-      document.getElementById('support-links-container').innerHTML = `<a href="${data.whatsapp}" target="_blank" class="support-link">📱 WhatsApp</a><a href="${data.telegramUser}" target="_blank" class="support-link">✈️ Telegram Directo</a><a href="${data.telegramGroup}" target="_blank" class="support-link">👥 Grupo Comunidad</a>`;
-    } catch (e) { document.getElementById('support-links-container').innerHTML = `<p style="text-align:center; color:var(--text-muted);">Soporte no configurado</p>`; }
+      document.getElementById('support-links-container').innerHTML = `
+        <a href="${data.whatsapp}" target="_blank" class="support-link">📱 WhatsApp</a>
+        <a href="${data.telegramUser}" target="_blank" class="support-link">✈️ Telegram Directo</a>
+        <a href="${data.telegramGroup}" target="_blank" class="support-link">👥 Grupo Comunidad</a>
+      `;
+    } catch (e) { 
+      document.getElementById('support-links-container').innerHTML = `<p style="text-align:center; color:var(--text-muted);">Soporte no configurado</p>`;
+    }
   }
 
+  // --- Service Worker ---
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
 </script>
 </body>
-</html>
+</html>  
